@@ -1,0 +1,244 @@
+/* ---------------------------------------------------------------- stage */
+.flame-stage {
+  position: relative;
+  margin: 0;
+  min-height: 420px;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg);
+  isolation: isolate;
+}
+
+.flame-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* corner brackets: instrument viewport */
+.flame-stage::before,
+.flame-stage::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: var(--border-strong);
+  border-style: solid;
+  pointer-events: none;
+  z-index: 1;
+}
+.flame-stage::before { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+.flame-stage::after { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+
+.flame-hud {
+  position: absolute;
+  top: 16px;
+  left: 32px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.flame-hud__tag { display: inline-flex; align-items: center; gap: 8px; color: var(--text); }
+
+.flame-hud__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--flame-orange);
+  box-shadow: 0 0 8px var(--flame-orange);
+  animation: flame-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes flame-pulse { 50% { opacity: 0.35; } }
+
+.flame-regime {
+  position: absolute;
+  left: 32px;
+  bottom: 18px;
+  max-width: 58%;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text);
+  padding-left: 10px;
+  border-left: 2px solid var(--flame-blue);
+  transition: border-color 300ms ease;
+  pointer-events: none;
+}
+.flame-regime--buoyant,
+.flame-regime--partial { border-left-color: var(--flame-orange); }
+.flame-regime--weak { border-left-color: var(--danger); }
+
+.flame-readout {
+  position: absolute;
+  right: 32px;
+  bottom: 16px;
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 2px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.flame-readout div { display: contents; }
+.flame-readout dt { color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.flame-readout dd { margin: 0; color: var(--text); text-align: right; }
+
+/* static fallback when WebGL is missing */
+.flame-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  background:
+    radial-gradient(ellipse at 50% 55%, rgba(255, 122, 26, 0.10), transparent 55%),
+    var(--bg);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.flame-fallback p { margin: 0; }
+.flame-fallback__glyph {
+  width: 56px;
+  height: 92px;
+  border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(ellipse at 50% 70%, var(--flame-core) 0%, var(--flame-orange) 45%, rgba(74, 163, 255, 0.35) 75%, transparent 76%);
+  filter: blur(2px);
+  opacity: 0.8;
+}
+
+/* ---------------------------------------------------------------- controls */
+.flame-controls {
+  display: grid;
+  gap: 22px;
+  padding: 22px 22px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.fc-row { display: grid; gap: 8px; }
+
+.fc-row__head { display: flex; align-items: baseline; justify-content: space-between; }
+
+.fc-row__label {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.fc-row__value {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.fc-row__unit { margin-left: 4px; font-size: 11px; color: var(--muted); }
+
+.fc-row__scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.fc-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.fc-range:focus-visible { outline: 1px solid var(--flame-blue); outline-offset: 4px; }
+
+.fc-range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: linear-gradient(to right, var(--flame-orange) var(--fill), var(--border-strong) var(--fill));
+}
+.fc-range::-moz-range-track { height: 2px; background: var(--border-strong); }
+.fc-range::-moz-range-progress { height: 2px; background: var(--flame-orange); }
+
+.fc-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 4px;
+  height: 16px;
+  margin-top: -7px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--text);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 10px rgba(255, 122, 26, 0.5);
+}
+.fc-range::-moz-range-thumb {
+  width: 4px;
+  height: 16px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--text);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 10px rgba(255, 122, 26, 0.5);
+}
+
+.fc-gravity { display: grid; gap: 12px; }
+
+.fc-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+
+.fc-preset {
+  display: grid;
+  gap: 2px;
+  padding: 8px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: 500 12px var(--font-sans);
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.fc-preset:hover { border-color: var(--border-strong); }
+.fc-preset:focus-visible { outline: 1px solid var(--flame-blue); outline-offset: 2px; }
+.fc-preset[aria-pressed="true"] {
+  border-color: var(--flame-orange);
+  background: rgba(255, 122, 26, 0.08);
+}
+.fc-preset__val { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+/* ---------------------------------------------------------------- temporary layout (Task 13 replaces) */
+.flame-demo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+  max-width: 1200px;
+}
+
+@media (max-width: 860px) {
+  .flame-demo { grid-template-columns: 1fr; }
+  .flame-stage { min-height: 320px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flame-hud__dot { animation: none; }
+}
