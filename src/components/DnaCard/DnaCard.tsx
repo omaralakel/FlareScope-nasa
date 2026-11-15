@@ -1,4 +1,5 @@
 import type { Investigation, Range, Sourced } from '../../data/schema';
+import { exactRange, fmtRange } from '../../lib/format';
 import { HABITATS } from '../../model/habitats';
 import { SourceTip } from '../Source/SourceTip';
 import './dnaCard.css';
@@ -44,13 +45,13 @@ type BarProps = {
 function RangeBar({ label, unit, data, max, markers, colorVar }: BarProps) {
   const r = data.confidence === 'missing' ? null : data.value;
   const pct = (v: number) => `${Math.max(0, Math.min(100, (v / max) * 100))}%`;
-  const text = r ? (r.min === r.max ? `${r.min}${unit}` : `${r.min}–${r.max}${unit}`) : 'not reported';
+  const text = r ? fmtRange(r, unit) : 'not reported';
   return (
     <div className="dna-row">
       <div className="dna-row__head">
         <span className="dna-row__label">{label}</span>
         {r ? (
-          <SourceTip source={data.source} confidence={data.confidence} title={`${label}: ${text}`}>
+          <SourceTip source={data.source} confidence={data.confidence} title={`${label}: ${text}`} detail={`exact: ${exactRange(r)}${unit}`}>
             <span className="dna-row__val">{text}</span>
           </SourceTip>
         ) : (

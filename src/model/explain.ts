@@ -1,7 +1,8 @@
 import type { Habitat } from './habitats';
 import type { RankedRow } from './rank';
+import { fmtNum } from '../lib/format';
 
-const num = (x: number) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
+const num = fmtNum;
 
 /** A short factual sentence on why an investigation ranks where it does for a habitat. Built only from data. */
 export function explainRank(r: RankedRow, h: Habitat): string {

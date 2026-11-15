@@ -8,7 +8,7 @@ import { RankedList } from './components/RankedList/RankedList'
 import { StoreProvider, useStore } from './state/store'
 import { StoryIntro } from './components/StoryIntro/StoryIntro'
 import { EarthSection } from './components/EarthSection/EarthSection'
-import { Compare, DEFAULT_COMPARE } from './components/DnaCard/Compare'
+import { Compare } from './components/DnaCard/Compare'
 
 // Temporary wiring; Task 13 replaces this with the presenter layout.
 const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -22,8 +22,8 @@ function LiveFlame() {
 function Page() {
   const { compare, setCompare } = useStore()
   const openInvestigation = (id: string) => {
-    const second = compare[0] === null && compare[1] === null ? DEFAULT_COMPARE[1] : compare[1]
-    setCompare(id, second === id ? null : second)
+    // Chosen id goes to slot A; if it was in B, swap so B is never dropped.
+    setCompare(id, compare[1] === id ? compare[0] : compare[1])
     scrollToId('compare')
   }
   return (

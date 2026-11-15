@@ -1,4 +1,5 @@
 import type { Investigation, Range, Sourced } from '../data/schema';
+import { fmtRange as fmtR } from '../lib/format';
 
 export type Diff = { same: string[]; different: { field: string; a: string; b: string }[] };
 
@@ -6,8 +7,7 @@ const NOT_REPORTED = 'not reported';
 
 function fmtRange(s: Sourced<Range>, unit: string): string {
   if (s.confidence === 'missing' || s.value === null) return NOT_REPORTED;
-  const { min, max } = s.value;
-  return min === max ? `${min}${unit}` : `${min}–${max}${unit}`;
+  return fmtR(s.value, unit);
 }
 
 function fmtList(items: string[]): string {

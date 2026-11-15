@@ -8,7 +8,7 @@ describe('store reducer', () => {
     expect(initialState.pressure).toBe(14.7);
     expect(initialState.gravity).toBe(0);
     expect(initialState.flow).toBe(10);
-    expect(initialState.compare).toEqual([null, null]);
+    expect(initialState.compare).toEqual(['flex', 'bass']);
   });
 
   it('setHabitat sets o2, pressure and gravity from the habitat and keeps flow', () => {

@@ -5,7 +5,6 @@ import { useStore } from '../../state/store';
 import { DnaCard } from './DnaCard';
 import './dnaCard.css';
 
-export const DEFAULT_COMPARE: [string, string] = ['flex', 'bass'];
 
 const FIELD_LABELS: Record<string, string> = {
   hardware: 'Hardware', platform: 'Platform', fuelPhase: 'Fuel phase', fuels: 'Fuels',
@@ -19,12 +18,16 @@ function sameLine(s: string) {
   const m = s.match(/^Neither reports (\w+)$/);
   if (m) return `Neither reports ${label(m[1]).toLowerCase()}`;
   const i = s.indexOf(': ');
-  return i > 0 ? `${label(s.slice(0, i))}: ${s.slice(i + 2)}` : s;
+  if (i <= 0) return s;
+  const field = s.slice(0, i);
+  let val = s.slice(i + 2);
+  if (field === 'o2Percent') val = val.replace('% O₂', '%');
+  return `${label(field)}: ${val}`;
 }
 
 export function Compare() {
   const { compare, setCompare } = useStore();
-  const [a, b] = compare[0] === null && compare[1] === null ? DEFAULT_COMPARE : compare;
+  const [a, b] = compare;
   const invs = dataset.investigations;
   const invA = invs.find((i) => i.id === a) ?? null;
   const invB = invs.find((i) => i.id === b) ?? null;
@@ -37,7 +40,8 @@ export function Compare() {
         value={value ?? ''}
         onChange={(e) => {
           const v = e.currentTarget.value || null;
-          which === 0 ? setCompare(v, b ?? null) : setCompare(a ?? null, v);
+          if (which === 0) setCompare(v, b);
+          else setCompare(a, v);
         }}
       >
         <option value="">Choose an investigation</option>

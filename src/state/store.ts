@@ -34,7 +34,7 @@ export const initialState: StoreState = {
   ...habitatConditions('iss'),
   flow: DEFAULT_FLOW_CM_S,
   step: 0,
-  compare: [null, null],
+  compare: ['flex', 'bass'],
 };
 
 export function reducer(state: StoreState, action: StoreAction): StoreState {

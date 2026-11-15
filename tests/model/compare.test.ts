@@ -49,4 +49,10 @@ describe('diffInvestigations', () => {
     expect(fields).toContain('hardware');
     expect(fields).toContain('fuelPhase');
   });
+  it('real data: FLEX pressure is projector-readable', () => {
+    const flex = dataset.investigations.find((i) => i.id === 'flex')!;
+    const bass = dataset.investigations.find((i) => i.id === 'bass')!;
+    const d = diffInvestigations(flex, bass);
+    expect(d.different).toContainEqual({ field: 'pressurePsi', a: '10.2–44.9 psi', b: 'not reported' });
+  });
 });
