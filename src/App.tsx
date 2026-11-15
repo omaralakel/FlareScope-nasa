@@ -9,6 +9,7 @@ import { StoreProvider, useStore } from './state/store'
 import { StoryIntro } from './components/StoryIntro/StoryIntro'
 import { EarthSection } from './components/EarthSection/EarthSection'
 import { Compare } from './components/DnaCard/Compare'
+import { GravityBridge } from './components/GravityBridge/GravityBridge'
 
 // Temporary wiring; Task 13 replaces this with the presenter layout.
 const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -47,6 +48,9 @@ function Page() {
       </div>
       <div id="ranked">
         <RankedList dataset={dataset} onSelectInvestigation={openInvestigation} />
+      </div>
+      <div id="gravity">
+        <GravityBridge dataset={dataset} onSelectInvestigation={openInvestigation} />
       </div>
       <EarthSection onSelectInvestigation={openInvestigation} />
       <div id="compare">
