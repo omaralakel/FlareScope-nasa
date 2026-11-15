@@ -61,3 +61,5 @@
 }
 .st-conf--derived { border-style: dashed; }
 .st-conf--missing { color: var(--muted); }
+
+.st-note { font-size: 13px; color: var(--text); }

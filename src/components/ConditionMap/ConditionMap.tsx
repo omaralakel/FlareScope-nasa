@@ -1,9 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { memo, useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import * as d3 from 'd3';
 import { shortName } from '../../data/names';
 import type { Dataset, TestPoint } from '../../data/schema';
-import { boundaryEvidence, testsNear } from '../../model/coverage';
+import { BOUNDARY_CONCLUSION, boundaryEvidence, describeBoundaryEvidence, testsNear } from '../../model/coverage';
 import { HABITATS, type Habitat } from '../../model/habitats';
 import { boundaryIsMeaningful, boundaryO2, fitLogistic, type FlamModel } from '../../model/logistic';
 import { useStore } from '../../state/store';
@@ -95,6 +95,50 @@ function PointMark({ outcome, color, dashed }: { outcome: TestPoint['outcome']; 
   }
 }
 
+/**
+ * All test points. Memoised and independent of the store's o2 / pressure / flow and of the
+ * hovered point, so slider-driven crosshair updates never re-render ~1000 point nodes.
+ * Pointer handling is delegated through data-i attributes.
+ */
+const PointsLayer = memo(function PointsLayer({
+  points,
+  mode,
+  colorOf,
+  onHover,
+  onSelect,
+}: {
+  points: Plotted[];
+  mode: XAxisMode;
+  colorOf(id: string): string;
+  onHover(i: number | null): void;
+  onSelect(i: number): void;
+}) {
+  const indexOf = (e: MouseEvent<SVGGElement>): number | null => {
+    const el = (e.target as Element).closest('[data-i]');
+    return el ? Number(el.getAttribute('data-i')) : null;
+  };
+  return (
+    <g
+      className="cmap__points"
+      onMouseOver={(e) => onHover(indexOf(e))}
+      onMouseLeave={() => onHover(null)}
+      onClick={(e) => {
+        const i = indexOf(e);
+        if (i !== null) onSelect(i);
+      }}
+    >
+      {points.map((p) => (
+        <g key={`${mode}-${p.i}`} data-i={p.i} className="cmap__pt" transform={`translate(${p.x},${p.y})`}>
+          <circle r={8} className="cmap__hit" />
+          <PointMark outcome={p.t.outcome} color={colorOf(p.t.investigationId)} dashed={p.t.o2Basis === 'burner_stream'} />
+        </g>
+      ))}
+    </g>
+  );
+});
+
+const PAGE_STEP = 10;
+
 /* ------------------------------------------------------------------ component */
 
 export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', onSelectInvestigation }: ConditionMapProps) {
@@ -104,6 +148,7 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
   const [whyOpen, setWhyOpen] = useState(false);
   const [active, setActive] = useState<number | null>(null);
   const [width, setWidth] = useState(900);
+  const [resizing, setResizing] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const whyId = useId();
 
@@ -117,9 +162,19 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setWidth(Math.max(320, Math.round(entry.contentRect.width))));
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // While the width changes, suppress position transitions so marks snap instead of gliding.
+    const ro = new ResizeObserver(([entry]) => {
+      setResizing(true);
+      setWidth(Math.max(320, Math.round(entry.contentRect.width)));
+      clearTimeout(timer);
+      timer = setTimeout(() => setResizing(false), 200);
+    });
     ro.observe(el);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      clearTimeout(timer);
+    };
   }, []);
 
   const model = useMemo(
@@ -171,9 +226,22 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
       if (xv === null) return;
       out.push({ t, i, x: xScale(xv), y: yScale(t.o2Percent) });
     });
-    // Ambient points on top of burner-stream points; then left-to-right for keyboard order.
-    return out.sort((a, b) => a.x - b.x || b.y - a.y);
+    // Draw order: burner-stream points first so ambient points paint on top of them.
+    const rank = (p: Plotted) => (p.t.o2Basis === 'burner_stream' ? 0 : 1);
+    return out.sort((a, b) => rank(a) - rank(b));
   }, [dataset, showBurner, mode, xScale, yScale]);
+
+  /** Keyboard order: grouped by investigation (dataset order), then left-to-right, top-down. */
+  const navOrder: Plotted[] = useMemo(() => {
+    const invRank = new Map(dataset.investigations.map((inv, k) => [inv.id, k]));
+    return [...plotted].sort(
+      (a, b) =>
+        (invRank.get(a.t.investigationId) ?? 0) - (invRank.get(b.t.investigationId) ?? 0) ||
+        a.x - b.x ||
+        a.y - b.y,
+    );
+  }, [plotted, dataset]);
+  const byIndex = useMemo(() => new Map(plotted.map((p) => [p.i, p])), [plotted]);
   const notPlotted = candidates.filter((t) => xOf(t) === null).length;
 
   const visibleInvs = useMemo(() => {
@@ -207,24 +275,87 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
     return { mid: line(0.5), band, label: `Fit to ${model.n} tests from ${sources.join(', ')}`, labelY };
   }, [showBoundary, model, mode, xScale, yScale, invById]);
 
-  const activePt = active === null ? null : plotted.find((p) => p.i === active) ?? null;
+  const activePt = active === null ? null : byIndex.get(active) ?? null;
+
+  // Stable callbacks for the memoised points layer.
+  const selectRef = useRef(onSelectInvestigation);
+  const testsRef = useRef(dataset.tests);
+  useEffect(() => {
+    selectRef.current = onSelectInvestigation;
+    testsRef.current = dataset.tests;
+  });
+  const onHover = useCallback((i: number | null) => setActive(i), []);
+  const onSelectPoint = useCallback((i: number) => {
+    const t = testsRef.current[i];
+    if (t) selectRef.current?.(t.investigationId);
+  }, []);
 
   function onKey(e: KeyboardEvent<SVGRectElement>) {
-    if (plotted.length === 0) return;
-    const idx = activePt ? plotted.indexOf(activePt) : -1;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+    const n = navOrder.length;
+    if (n === 0) return;
+    const idx = activePt ? navOrder.indexOf(activePt) : -1;
+    const go = (k: number) => {
       e.preventDefault();
-      setActive(plotted[(idx + 1) % plotted.length].i);
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActive(plotted[(idx - 1 + plotted.length) % plotted.length].i);
-    } else if ((e.key === 'Enter' || e.key === ' ') && activePt) {
-      e.preventDefault();
-      onSelectInvestigation?.(activePt.t.investigationId);
-    } else if (e.key === 'Escape') {
-      setActive(null);
+      setActive(navOrder[((k % n) + n) % n].i);
+    };
+    const step = e.shiftKey ? PAGE_STEP : 1;
+    const invOf = (k: number) => navOrder[k].t.investigationId;
+    switch (e.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        return go(idx < 0 ? 0 : idx + step);
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        return go(idx < 0 ? n - 1 : idx - step);
+      case 'Home':
+        return go(0);
+      case 'End':
+        return go(n - 1);
+      case 'PageDown': {
+        // First point of the next investigation (wraps).
+        if (idx < 0) return go(0);
+        let k = idx;
+        while (k < n && invOf(k) === invOf(idx)) k++;
+        return go(k >= n ? 0 : k);
+      }
+      case 'PageUp': {
+        // First point of this investigation, or of the previous one if already there (wraps).
+        if (idx < 0) return go(n - 1);
+        let k = idx;
+        while (k > 0 && invOf(k - 1) === invOf(idx)) k--;
+        if (k !== idx) return go(k);
+        const prev = (k - 1 + n) % n;
+        let j = prev;
+        while (j > 0 && invOf(j - 1) === invOf(prev)) j--;
+        return go(j);
+      }
+      case 'Enter':
+      case ' ':
+        if (activePt) {
+          e.preventDefault();
+          onSelectInvestigation?.(activePt.t.investigationId);
+        }
+        return;
+      case 'Escape':
+        setActive(null);
+        return;
     }
   }
+
+  const invName = (id: string) => invById.get(id)?.name ?? id;
+  const liveText = activePt
+    ? [
+        `${navOrder.indexOf(activePt) + 1} of ${navOrder.length}.`,
+        `${invName(activePt.t.investigationId)}.`,
+        `O2 ${fmt(activePt.t.o2Percent)} percent${activePt.t.o2Basis === 'burner_stream' ? ', burner stream' : ''}.`,
+        `Pressure ${activePt.t.pressurePsi === null ? 'not reported' : `${fmt(activePt.t.pressurePsi, 2)} psi`}.`,
+        mode === 'flow' && activePt.t.flowCmS !== null ? `Flow ${fmt(activePt.t.flowCmS)} centimetres per second.` : '',
+        `Outcome: ${OUTCOME_LABEL[activePt.t.outcome]}.`,
+      ]
+        .filter(Boolean)
+        .join(' ')
+    : '';
+  const whyText = `${describeBoundaryEvidence(evidence, (id) => (invById.get(id) ? shortName(invById.get(id)!) : id))} ${BOUNDARY_CONCLUSION}`;
 
   /* crosshair */
   const crossX = xScale(mode === 'pressure' ? store.pressure : store.flow);
@@ -249,7 +380,7 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
   const tipFlip = activePt ? tipLeft > width * 0.6 : false;
 
   return (
-    <section className="cmap" aria-labelledby={`${whyId}-title`}>
+    <section className={`cmap${resizing ? ' is-resizing' : ''}`} aria-labelledby={`${whyId}-title`}>
       <header className="cmap__head">
         <div>
           <h2 id={`${whyId}-title`} className="cmap__title">Where the data is</h2>
@@ -369,21 +500,8 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
               )}
 
               {/* points */}
-              <g className="cmap__points">
-                {plotted.map((p) => (
-                  <g
-                    key={`${mode}-${p.i}`}
-                    className={`cmap__pt${p.i === active ? ' is-active' : ''}`}
-                    style={{ transform: `translate(${p.x}px, ${p.y}px)` }}
-                    onMouseEnter={() => setActive(p.i)}
-                    onMouseLeave={() => setActive((a) => (a === p.i ? null : a))}
-                    onClick={() => onSelectInvestigation?.(p.t.investigationId)}
-                  >
-                    <circle r={8} className="cmap__hit" />
-                    <PointMark outcome={p.t.outcome} color={colorOf(p.t.investigationId)} dashed={p.t.o2Basis === 'burner_stream'} />
-                  </g>
-                ))}
-              </g>
+              <PointsLayer points={plotted} mode={mode} colorOf={colorOf} onHover={onHover} onSelect={onSelectPoint} />
+              {activePt && <circle className="cmap__active" r={8} cx={activePt.x} cy={activePt.y} />}
 
               {/* habitats */}
               {mode === 'pressure' && (
@@ -431,13 +549,22 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
               height={innerH}
               tabIndex={0}
               role="application"
-              aria-label="Test points. Use arrow keys to step through tests, Enter to open the investigation, Escape to clear."
+              aria-roledescription="scatter plot"
+              aria-label={`${navOrder.length} test points`}
+              aria-describedby={`${whyId}-keys ${whyId}-live`}
               onKeyDown={onKey}
               onBlur={() => setActive(null)}
               style={{ pointerEvents: 'none' }}
             />
           </g>
         </svg>
+        <p id={`${whyId}-keys`} className="cmap__sr">
+          Arrow keys step through tests (Shift for 10 at a time). Page Up and Page Down jump between investigations.
+          Home and End go to the first and last test. Enter opens the investigation. Escape clears.
+        </p>
+        <p id={`${whyId}-live`} className="cmap__sr" aria-live="polite" aria-atomic="true">
+          {liveText}
+        </p>
 
         {/* no-boundary callout */}
         {!showBoundary && mode === 'pressure' && (
@@ -464,13 +591,7 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.25, ease: 'easeOut' }}
                 >
-                  The pressure-based burn / no-burn tests in the dataset do not separate by oxygen level. Of{' '}
-                  {evidence.usable} usable tests, {evidence.burned} burned and {evidence.noIgnition} did not ignite. In the{' '}
-                  {evidence.investigations} investigations that contribute, one (FLEX) only ever recorded flames, mostly below
-                  25% O2, while the other (ACME CFI-G) saw no ignition in all {evidence.cfiG.below25} tests below 25% O2 and a
-                  mix above 35% O2 ({evidence.cfiG.above35Burned} burned, {evidence.cfiG.above35NoIgnition} did not). Whether a
-                  flame lit depended on fuel, flow and geometry, not just O2 and pressure, so a single O2-versus-pressure
-                  boundary would be misleading.
+                  {whyText}
                 </motion.p>
               )}
             </AnimatePresence>
@@ -489,7 +610,8 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
           >
             <SourceTipCard
               source={activePt.t.source}
-              confidence="stated"
+              confidence="derived"
+              note="From a PSI experimental table row; units converted to % O2 and psi where needed."
               title={
                 <span>
                   <span className="cmap__swatch" style={{ background: colorOf(activePt.t.investigationId) }} />

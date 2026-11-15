@@ -34,18 +34,21 @@ export type SourceTipCardProps = {
   confidence: Confidence;
   title?: ReactNode;
   children?: ReactNode;
+  /** Short line explaining how the value relates to the source (e.g. unit conversion). */
+  note?: ReactNode;
   id?: string;
   className?: string;
 };
 
 /** The tooltip panel itself: optional title and values, then the source and its confidence. */
-export function SourceTipCard({ source, confidence, title, children, id, className }: SourceTipCardProps) {
+export function SourceTipCard({ source, confidence, title, children, note, id, className }: SourceTipCardProps) {
   return (
     <div id={id} role="tooltip" className={`st-card${className ? ` ${className}` : ''}`}>
       {title && <div className="st-card__title">{title}</div>}
       {children && <div className="st-card__body">{children}</div>}
       <div className="st-card__foot">
         <span className={`st-conf st-conf--${confidence}`}>{CONFIDENCE_LABEL[confidence]}</span>
+        {note && <span className="st-note">{note}</span>}
         <span className="st-source">
           <SourceText source={source} />
         </span>
