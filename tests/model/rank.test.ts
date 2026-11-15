@@ -87,3 +87,15 @@ describe('habitats and ranking', () => {
     for (let i = 1; i < r.length; i++) expect(r[i - 1].total).toBeGreaterThanOrEqual(r[i].total);
   });
 });
+
+import { DEFAULT_WEIGHTS, normalizeWeights } from '../../src/model/rank';
+describe('normalizeWeights', () => {
+  it('sums to 1', () => {
+    const w = normalizeWeights({ condition: 1, pillar: 1, material: 2 });
+    expect(w.condition + w.pillar + w.material).toBeCloseTo(1);
+    expect(w.material).toBeCloseTo(0.5);
+  });
+  it('falls back to defaults at zero sum', () => {
+    expect(normalizeWeights({ condition: 0, pillar: 0, material: 0 })).toEqual(DEFAULT_WEIGHTS);
+  });
+});

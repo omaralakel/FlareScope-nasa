@@ -1,0 +1,18 @@
+.mp { padding: 0 28px 20px; }
+.mp__title { margin: 0 0 10px; font-size: 14px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mp__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.mp-tile {
+  position: relative; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; text-align: left;
+  padding: 12px 14px; background: var(--surface); color: var(--text); font-family: var(--font-sans);
+  border: 1px solid var(--border-strong); border-radius: 10px; cursor: pointer;
+}
+.mp-tile:hover { background: var(--surface-2); }
+.mp-tile:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
+.mp-tile--on { background: var(--surface-2); border-color: var(--accent-neutral); box-shadow: inset 0 0 0 1px var(--accent-neutral); }
+.mp-tile__label { font-size: 16px; font-weight: 600; }
+.mp-tile__badge {
+  position: absolute; top: 10px; right: 10px; font-size: 13px; padding: 1px 8px; border-radius: 999px;
+  border: 1px dashed var(--accent-neutral); color: var(--accent-neutral);
+}
+.mp-tile__stats { display: flex; flex-wrap: wrap; gap: 4px 12px; font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.mp-tile--on .mp-tile__stats { color: var(--text); }

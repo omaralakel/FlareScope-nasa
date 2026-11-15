@@ -51,3 +51,15 @@ export function rankInvestigations(invs: Investigation[], h: Habitat, w: Weights
     .map((inv) => ({ inv, ...scoreInvestigation(inv, h, w) }))
     .sort((a, b) => b.total - a.total || a.inv.name.localeCompare(b.inv.name));
 }
+
+export type RankedRow = ReturnType<typeof rankInvestigations>[number];
+
+/** Scales weights so they sum to 1; falls back to DEFAULT_WEIGHTS when the sum is 0 (or invalid). */
+export function normalizeWeights(w: Weights): Weights {
+  const c = Math.max(0, w.condition) || 0;
+  const p = Math.max(0, w.pillar) || 0;
+  const m = Math.max(0, w.material) || 0;
+  const sum = c + p + m;
+  if (!(sum > 0) || !Number.isFinite(sum)) return { ...DEFAULT_WEIGHTS };
+  return { condition: c / sum, pillar: p / sum, material: m / sum };
+}
