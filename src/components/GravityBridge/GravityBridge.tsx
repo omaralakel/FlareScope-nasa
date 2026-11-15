@@ -5,6 +5,7 @@ import {
   GRAVITY_PAIRS, isNoBurn, orbitPassEarthFail, SAFFIRE_II_ID, type GravityPair,
 } from '../../data/gravityPairs';
 import { GRAVITY_PRESETS, HABITATS } from '../../model/habitats';
+import { countOrbitalTests } from '../../model/orbital';
 import { useStore } from '../../state/store';
 import { SourceTip } from '../Source/SourceTip';
 import './gravityBridge.css';
@@ -13,6 +14,8 @@ type Props = { dataset: Dataset; onSelectInvestigation?: (id: string) => void };
 
 const BRIEF_LABEL = 'NASA Space Apps 2026 challenge brief: Flame in Freefall';
 const BRIEF_URL = 'https://www.spaceappschallenge.org/';
+/** Local reference copy of the brief, committed in the repo. */
+const BRIEF_DOC = 'docs/challenge-brief.md, Partial-gravity data';
 
 const MARKERS = [
   { key: 'micro', label: 'Orbit (ISS)', g: GRAVITY_PRESETS.micro },
@@ -26,20 +29,20 @@ const CALLOUTS = [
     id: 'efield',
     kicker: 'Flown on the ISS',
     title: 'E-FIELD Flames',
-    text: 'Applied an electric field that acts on the ions in a flame, mimicking some partial-gravity effects without changing gravity itself.',
+    text: 'Partial gravity was mimicked through the effect of an electric field on the ions that naturally occur in flames.',
     investigationId: 'acme-e-field',
   },
   {
     id: 'luci',
     kicker: 'Planned',
     title: 'LUCI: Lunar-g Combustion Investigation',
-    text: 'Expected to add combustion data at partial gravity in the future.',
+    text: 'Partial-gravity combustion data is expected to be added to PSI in the future, for example from LUCI.',
   },
   {
     id: 'fm2',
     kicker: 'Planned',
     title: 'FM2: Flammability of Materials on the Moon',
-    text: 'Expected to add material flammability data at partial gravity in the future.',
+    text: 'Partial-gravity combustion data is expected to be added to PSI in the future, for example from FM2.',
   },
 ] as const;
 
@@ -75,7 +78,7 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
   const silicone = GRAVITY_PAIRS.filter((p) => p.material === 'Silicone');
   const flips = orbitPassEarthFail(silicone);
   const flipIds = new Set(flips.map((p) => p.id));
-  const testCount = dataset.tests.length;
+  const tests = countOrbitalTests(dataset);
   const names = new Map(dataset.investigations.map((i) => [i.id, shortName(i)]));
   const isHabitat = (g: number) => h.gravityG === g;
   const pos = (g: number) => ({ '--x': `${g * 100}%` }) as CSSProperties;
@@ -83,15 +86,19 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
   return (
     <section className="gb" aria-labelledby="gb-title">
       <p className="gb__kicker">Gravity bridge · SAFFIRE-II paired burns</p>
-      <h2 className="gb__title" id="gb-title">Passing in orbit does not mean passing on the Moon</h2>
+      <h2 className="gb__title" id="gb-title">What didn't burn in orbit burned at 1 g</h2>
+      <p className="gb__sub">The Moon (0.166 g) and Mars (0.38 g) sit in between — and are untested in PSI.</p>
       <p className="gb__lede">
         In SAFFIRE-II, {flips.length} of {silicone.length} silicone samples had a burn length of
         about 0 in microgravity, yet burned completely in 1 g (samples {flips.map((p) => p.id).join(' and ')}).
-        Same flow of about 20 cm/s, about 21.5 to 22.1% O₂. The Moon and Mars sit between these two results,
-        and PSI has no test data there yet.
+        Same flow of about 20 cm/s, about 21.5 to 22.1% O₂. Moon and Mars gravity lie between 0 and 1 g,
+        and no PSI result exists there.
       </p>
       <p className="gb__context">
-        <span><strong>{testCount}</strong> PSI test points in FlameScope, all in microgravity</span>
+        <span><strong>{tests.orbital}</strong> test points from orbital (microgravity) investigations</span>
+        {tests.excluded > 0 && (
+          <span><strong>{tests.excluded}</strong> from non-orbital platforms, not counted</span>
+        )}
         <span><strong>0</strong> at lunar gravity</span>
         <span><strong>0</strong> at Martian gravity</span>
       </p>
@@ -109,7 +116,9 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
               </span>
             ))}
           </span>
-          <span role="columnheader" className="gb-cell gb-end gb-end--right">Earth, 1 g</span>
+          <span role="columnheader" className={`gb-cell gb-end gb-end--right${isHabitat(1) ? ' is-habitat' : ''}`}>
+            Earth, 1 g
+          </span>
         </div>
 
         <div
@@ -147,7 +156,7 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
                   <span className="gb-meta">{p.thickness} · {p.flowDirection}</span>
                 </span>
                 <span className="gb-cell gb-end" role="cell"><Result r={p.microG} side="Microgravity" /></span>
-                <span className="gb-cell gb-gap" role="cell" aria-hidden="true"><span className="gb-connector" /></span>
+                <span className="gb-cell gb-gap" role="cell" aria-hidden="true" />
                 <span className="gb-cell gb-end gb-end--right" role="cell"><Result r={p.oneG} side="1 g" /></span>
               </div>
             ))}
@@ -159,11 +168,12 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
         <p className="gb-legend">
           <span><span className="gb-dot" aria-hidden="true" /> Burned: burn length above about 0</span>
           <span><span className="gb-dot gb-dot--none" aria-hidden="true" /> Burn length about 0</span>
-          <span><span className="gb-swatch" aria-hidden="true" /> Orbit ~0, Earth complete</span>
+          <span><span className="gb-swatch" aria-hidden="true" /> ~0 in orbit, complete at 1 g</span>
           <span className="gb-legend__hab">Your habitat: {h.label}, {h.gravityG} g</span>
         </p>
         <p className="gb-source">
-          Values copied as written in PSI-99 Experimental table (SAFFIRE-2.csv), all samples 29 cm long. Hover or
+          Values copied as written in PSI-99 Experimental table (SAFFIRE-2.csv). Samples were 29 cm long, except
+          2-7 (5 and 24 cm). Hover or
           focus a sample number for its row and notes.{' '}
           <button type="button" className="gb-chip" onClick={() => onSelectInvestigation?.(SAFFIRE_II_ID)}>
             Open {names.get(SAFFIRE_II_ID) ?? 'SAFFIRE-II'}
@@ -182,9 +192,13 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
                 {names.get(c.investigationId) ?? c.investigationId}
               </button>
             )}
-            <a className="gb-card__source" href={BRIEF_URL} target="_blank" rel="noopener noreferrer">
-              Source: {BRIEF_LABEL}<span className="sr-only"> (opens in new tab)</span>
-            </a>
+            <p className="gb-card__source">
+              Source:{' '}
+              <a href={BRIEF_URL} target="_blank" rel="noopener noreferrer">
+                {BRIEF_LABEL}<span className="sr-only"> (opens in new tab)</span>
+              </a>
+              <span className="gb-card__doc">{BRIEF_DOC}</span>
+            </p>
           </article>
         ))}
       </div>

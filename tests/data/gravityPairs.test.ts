@@ -14,7 +14,7 @@ describe('SAFFIRE-II gravity pairs', () => {
   it('sources every pair to a PSI-99 table row', () => {
     GRAVITY_PAIRS.forEach((p, i) => {
       expect(p.source).toMatch(/PSI-99/);
-      expect(p.source).toMatch(new RegExp(`row ${i + 1}$`));
+      expect(p.source).toMatch(new RegExp(`data row ${i + 1} \\(header excluded\\)$`));
       expect(p.psiUrl).toBe(PSI_99_URL);
     });
   });

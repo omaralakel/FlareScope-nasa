@@ -3,7 +3,8 @@
   margin: 0; font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--muted);
 }
-.gb__title { margin: 6px 0 10px; font-size: clamp(24px, 3vw, 34px); font-weight: 600; letter-spacing: -0.01em; }
+.gb__title { margin: 6px 0 4px; font-size: clamp(24px, 3vw, 34px); font-weight: 600; letter-spacing: -0.01em; }
+.gb__sub { margin: 0 0 12px; font-size: 17px; color: var(--muted); }
 .gb__lede { margin: 0 0 14px; max-width: 78ch; font-size: 16px; line-height: 1.5; }
 .gb__context {
   display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 0 0 20px;
@@ -32,7 +33,7 @@
   font-family: var(--font-mono); font-size: 13px; color: var(--muted);
   border-bottom: 1px solid var(--border-strong); padding-bottom: 10px; align-self: end;
 }
-.gb-row--head .gb-end.is-habitat { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent-neutral); }
+.gb-row--head .gb-end.is-habitat, .gb-row--head .gb-end--right.is-habitat { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent-neutral); }
 
 .gb-axis { position: relative; min-height: 56px; }
 /* Moon and Mars are close on a 0-1 g scale, so their labels sit on two lines. */
@@ -78,17 +79,19 @@
   border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px;
 }
 
-.gb-gap { position: relative; z-index: 1; display: flex; align-items: center; }
-.gb-connector { display: block; width: 100%; border-top: 1px dotted var(--border-strong); }
+/* Nothing is drawn inside the band: no line implies a value between 0 and 1 g. */
+.gb-gap { pointer-events: none; }
 
-/* Highlighted pairs: ~0 in orbit, complete in 1 g. */
+/* Highlighted pairs: ~0 in orbit, complete in 1 g. Tint + edge marks at both ends, nothing across the band. */
 .gb-row--flip > .gb-cell:not(.gb-gap) { background: var(--surface-2); }
-.gb-row--flip .gb-connector { border-top: 2px solid var(--flame-orange); }
+.gb-row--flip > .gb-cell--label { box-shadow: inset 3px 0 0 var(--flame-orange); }
+.gb-row--flip > .gb-end:not(.gb-end--right) { box-shadow: inset -3px 0 0 var(--flame-orange); }
+.gb-row--flip > .gb-end--right { box-shadow: inset 3px 0 0 var(--flame-orange); }
 
 .gb-foot { display: grid; gap: 8px; margin: 12px 0 24px; }
 .gb-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; font-size: 13px; color: var(--muted); align-items: center; }
 .gb-legend > span { display: inline-flex; gap: 6px; align-items: center; }
-.gb-swatch { display: inline-block; width: 18px; border-top: 2px solid var(--flame-orange); }
+.gb-swatch { display: inline-block; width: 14px; height: 12px; background: var(--surface-2); box-shadow: inset 3px 0 0 var(--flame-orange); border: 1px solid var(--border-strong); }
 .gb-legend__hab { color: var(--text); border: 1px solid var(--accent-neutral); border-radius: 999px; padding: 1px 8px; }
 .gb-source { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; }
 
@@ -110,8 +113,10 @@
 }
 .gb-card__title { margin: 0; font-size: 17px; font-weight: 600; }
 .gb-card__text { margin: 0; font-size: 15px; line-height: 1.5; }
-.gb-card__source { margin-top: auto; font-size: 13px; color: var(--accent-neutral); text-underline-offset: 3px; }
-.gb-chip:focus-visible, .gb-card__source:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
+.gb-card__source { margin: auto 0 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.gb-card__source a { color: var(--accent-neutral); text-underline-offset: 3px; }
+.gb-card__doc { display: block; font-family: var(--font-mono); }
+.gb-chip:focus-visible, .gb-card__source a:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
 
 @media (max-width: 720px) {
   .gb { padding: 40px 16px 48px; }

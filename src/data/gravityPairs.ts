@@ -1,9 +1,13 @@
 /**
  * Paired microgravity / 1 g results from SAFFIRE-II (PSI-99). Each sample was burned in
  * microgravity on orbit and the same configuration was burned in 1 g, all at about 20 cm/s
- * flow and about 21.5-22.1% O2, sample length 29 cm. Values are copied as text exactly as
- * written in the PSI table (including "~ 0", "Complete", "Acceleratory", "n/a").
- * A spreadRate of null means the table cell reads "n/a".
+ * flow and about 21.5-22.1% O2. Sample length is 29 cm except 2-7 ("5 and 24 cm").
+ * Values are copied as text exactly as written in the PSI table (including "~ 0",
+ * "Complete", "Acceleratory", "n/a"). A spreadRate of null means the table cell reads "n/a".
+ *
+ * CSV reading notes: the headers "?-g Burn Length" and "?-g Spread Length" are read as µg
+ * (the file encoding lost the µ). Despite its name, "Spread Length" holds spread rates in
+ * mm/s. Row numbers count data rows only (the header row is excluded), so row 1 is sample 2-1.
  */
 export type GravityPair = {
   id: string;
@@ -20,10 +24,8 @@ export type GravityPair = {
 
 export const PSI_99_URL = 'https://psi.nasa.gov/physci/repo/data/investigations/PSI-99';
 export const SAFFIRE_II_ID = 'saffire-ii';
-/** Sample length in the table, used to explain what "Complete" means. */
-export const SAMPLE_LENGTH = '29 cm';
 
-const src = (row: number) => `PSI-99 Experimental table PSI-99_Experimental table_SAFFIRE-2.csv, row ${row}`;
+const src = (row: number) => `PSI-99 Experimental table PSI-99_Experimental table_SAFFIRE-2.csv, data row ${row} (header excluded)`;
 const NOTE_037 = 'Thickness is written "037 mm" in the PSI table.';
 
 export const GRAVITY_PAIRS: GravityPair[] = [
