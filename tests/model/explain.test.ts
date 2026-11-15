@@ -42,3 +42,7 @@ describe('explainRank pressure', () => {
     expect(explainRank(r, HABITATS.moon)).toContain('tested 10–14.7 psi');
   });
 });
+
+it('uses singular "point" at a gap of exactly 1', () => {
+  expect(explainRank(row({ o2Percent: o2(29, 29) }), HABITATS.moon)).toContain('1 point below');
+});

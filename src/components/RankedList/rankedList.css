@@ -22,7 +22,6 @@
 .rl-row__name::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
 .rl-row__name:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
 .rl-row__link { position: relative; z-index: 1; }
-@media (prefers-reduced-motion: reduce) { .rl-seg { transition: none; } }
 .rl-chip, .rl-tag { font-size: 13px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--muted); }
 .rl-tags { display: inline-flex; gap: 6px; }
 .rl-bar { display: flex; height: 8px; width: 100%; background: var(--border); border-radius: 4px; overflow: hidden; }
@@ -32,3 +31,4 @@
 .rl-row__link { font-size: 14px; color: var(--accent-neutral); white-space: nowrap; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 640px) { .rl-row__main { grid-template-columns: 28px 1fr; } .rl-row__score, .rl-row__link { grid-column: 2; } }
+@media (prefers-reduced-motion: reduce) { .rl-seg { transition: none; } }
