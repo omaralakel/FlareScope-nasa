@@ -1,0 +1,173 @@
+/* Page assembly: header, numbered sections, main grid, footer, presenter indicator. */
+:root {
+  --page-max: 1360px;
+  --gutter: clamp(16px, 3vw, 40px);
+  --header-h: 56px;
+  --section-gap: clamp(48px, 6vw, 80px);
+}
+
+html { scroll-behavior: auto; }
+
+/* ---------------------------------------------------------------- header */
+.fs-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+
+.fs-header__inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: var(--page-max);
+  min-height: var(--header-h);
+  margin: 0 auto;
+  padding: 8px var(--gutter);
+}
+
+.fs-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.fs-brand:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 4px; border-radius: 4px; }
+.fs-brand img { height: 28px; width: auto; flex: none; }
+.fs-brand__name { font-size: 18px; font-weight: 700; letter-spacing: 0.01em; }
+.fs-brand__by {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.fs-badge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 0 auto;
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.fs-badge__name { font-weight: 600; color: var(--text); }
+.fs-badge__vals {
+  display: flex;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.fs-badge__vals small { font-size: 13px; color: var(--muted); }
+
+/* ---------------------------------------------------------------- main + sections */
+.fs-main {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 40px var(--gutter) 24px;
+  display: grid;
+  gap: var(--section-gap);
+}
+
+.fs-section {
+  min-width: 0;
+  scroll-margin-top: calc(var(--header-h) + 20px);
+}
+
+.fs-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fs-eyebrow__n { color: var(--text); font-weight: 600; }
+
+/* Components keep their own look; the page owns outer spacing and width. */
+.fs-section :is(.mp, .rl, .cmp, .ask, .gb, .es) { padding: 0; border-top: 0; }
+.fs-section .cmap { max-width: none; }
+
+/* flame | map */
+.fs-stage { display: grid; gap: var(--section-gap); min-width: 0; }
+.fs-flame { display: grid; gap: 16px; align-content: start; }
+.fs-flame > .fs-eyebrow { margin-bottom: 0; }
+
+@media (min-width: 1280px) {
+  .fs-stage {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 24px;
+    align-items: start;
+  }
+  /* Keep the flame and its sliders within one laptop screen. */
+  .fs-flame .flame-stage { aspect-ratio: auto; height: clamp(280px, 46vh, 520px); }
+  .fs-flame .flame-controls { grid-template-columns: 1fr 1fr; gap: 16px 22px; padding: 18px 20px 16px; }
+}
+
+/* ---------------------------------------------------------------- footer */
+.fs-footer { margin-top: var(--section-gap); border-top: 1px solid var(--border); background: var(--surface); }
+.fs-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 20px var(--gutter) 28px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.fs-footer p { margin: 0; }
+.fs-footer a { color: var(--text); }
+.fs-footer a:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
+.fs-footer__meta { font-family: var(--font-mono); font-size: 13px; }
+
+/* ---------------------------------------------------------------- presenter indicator */
+.fs-indicator {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text);
+  pointer-events: none;
+}
+.fs-indicator__n { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------- small screens */
+@media (max-width: 720px) {
+  .fs-brand__by { display: none; }
+  .fs-badge { gap: 8px; padding: 4px 10px; }
+  .fs-badge__vals { gap: 8px; }
+}
+@media (max-width: 480px) {
+  .fs-badge__name { display: none; }
+  .fs-brand__name { font-size: 16px; }
+}
+@media (max-width: 480px) {
+  /* Give the map's plot the room its 320px minimum needs on a phone. */
+  .fs-section .cmap { padding: 16px 12px 14px; }
+}

@@ -2,7 +2,8 @@
 .flame-stage {
   position: relative;
   margin: 0;
-  min-height: 420px;
+  width: 100%;
+  min-width: 0; /* never let the aspect ratio push the page wider than the viewport */
   aspect-ratio: 4 / 3;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -223,18 +224,10 @@
 }
 .fc-preset__val { font-family: var(--font-mono); font-size: 13px; color: var(--muted); white-space: nowrap; }
 
-/* ---------------------------------------------------------------- temporary layout (Task 13 replaces) */
-.flame-demo {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 20px;
-  align-items: start;
-  max-width: 1200px;
-}
-
-@media (max-width: 860px) {
-  .flame-demo { grid-template-columns: 1fr; }
-  .flame-stage { min-height: 320px; }
+@media (max-width: 640px) {
+  .flame-stage { aspect-ratio: 1; }
+  .flame-hud, .flame-regime { left: 18px; }
+  .flame-hud, .flame-readout { right: 18px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

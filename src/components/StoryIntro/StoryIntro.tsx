@@ -1,23 +1,22 @@
-import { useCallback, useEffect, useId, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
+import { useCallback, useEffect, useId, useImperativeHandle, useRef, useState, type FocusEvent, type MouseEvent, type Ref } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { dataset } from '../../data/dataset';
 import { INCIDENTS, type Incident } from '../../data/incidents';
 import { shortName } from '../../data/names';
+import type { IntroHandle } from '../../presenter/usePresenter';
 import './storyIntro.css';
 
 type Props = {
   onDone: () => void;
   /** Milliseconds each step stays before auto-advancing. 0 disables auto-advance. */
   stepMs?: number;
+  /** Presenter control: next()/prev() return false at the ends. The presenter owns the keys. */
+  ref?: Ref<IntroHandle>;
 };
 
 const NAMES = new Map(dataset.investigations.map((i) => [i.id, shortName(i)]));
 const CLOSING = INCIDENTS.length; // step index of the closing line
 const EASE = [0.22, 1, 0.36, 1] as const;
-
-function isTypingTarget(t: EventTarget | null) {
-  return t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-}
 
 /** Links in the incident: stem down, rail across, then the investigation chips. */
 function Connector({ incident, animate }: { incident: Incident; animate: boolean }) {
@@ -152,54 +151,56 @@ function Closing({ onDone, animate }: { onDone: () => void; animate: boolean }) 
   );
 }
 
-export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
+export function StoryIntro({ onDone, stepMs = 9000, ref }: Props) {
   const reduce = useReducedMotion();
   const [step, setStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [done, setDone] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
+  // Once the presenter drives the intro by keys, auto-advance stops.
+  const [manual, setManual] = useState(false);
   const rootRef = useRef<HTMLElement>(null);
+  // Mirrors step synchronously so two quick presenter presses both count.
+  const stepRef = useRef(0);
+  const go = useCallback((n: number) => { stepRef.current = n; setStep(n); }, []);
 
   const finish = useCallback(() => { setDone(true); onDone(); }, [onDone]);
-  const next = useCallback(() => setStep((s) => Math.min(CLOSING, s + 1)), []);
-  const prev = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
+  const next = useCallback(() => go(Math.min(CLOSING, stepRef.current + 1)), [go]);
 
-  // Only listen for presenter keys while the intro is on screen.
+  useImperativeHandle(ref, () => ({
+    next() {
+      setManual(true);
+      if (reduce || stepRef.current >= CLOSING) return false;
+      go(stepRef.current + 1);
+      return true;
+    },
+    prev() {
+      setManual(true);
+      if (reduce || stepRef.current <= 0) return false;
+      go(stepRef.current - 1);
+      return true;
+    },
+  }), [reduce, go]);
+
+  // Auto-advance only runs while the intro is on screen.
   useEffect(() => {
     const el = rootRef.current;
-    // Without IntersectionObserver we cannot tell if the intro is on screen, so keys stay off (visible = false).
+    // Without IntersectionObserver we cannot tell if the intro is on screen, so auto-advance stays off.
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(([e]) => setVisible(e.intersectionRatio > 0.5), { threshold: [0, 0.5, 1] });
     io.observe(el);
     return () => io.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (reduce || !visible || done) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || isTypingTarget(e.target)) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
-      else if (e.key === ' ') {
-        // Let Space press a focused button or link as usual.
-        if (e.target instanceof HTMLElement && e.target.closest('button, a')) return;
-        e.preventDefault();
-        next();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [reduce, visible, done, next, prev]);
-
   // Gentle auto-advance; any manual step restarts the timer. Stops on the closing line,
   // after onDone, and pauses while the pointer is over the intro or focus is inside it.
   const paused = hovered || focused;
   useEffect(() => {
-    if (reduce || !visible || done || paused || !stepMs || step >= CLOSING) return;
+    if (reduce || !visible || done || manual || paused || !stepMs || step >= CLOSING) return;
     const id = window.setTimeout(next, stepMs);
     return () => window.clearTimeout(id);
-  }, [reduce, visible, done, paused, stepMs, step, next]);
+  }, [reduce, visible, done, manual, paused, stepMs, step, next]);
 
   const onBlur = (e: FocusEvent) => {
     if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
@@ -241,7 +242,7 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
       <ol className="si-timeline" aria-label="Timeline">
         {INCIDENTS.map((inc, i) => (
           <li key={inc.id} className={`si-tick${i === step ? ' si-tick--on' : ''}${i < step ? ' si-tick--past' : ''}`}>
-            <button type="button" onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined}>
+            <button type="button" onClick={() => go(i)} aria-current={i === step ? 'step' : undefined}>
               <span className="si-tick__dot" aria-hidden="true" />
               <span className="si-tick__year">{inc.when}</span>
               <span className="si-tick__name">{inc.title}</span>
@@ -249,7 +250,7 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
           </li>
         ))}
         <li className={`si-tick${step === CLOSING ? ' si-tick--on' : ''}`}>
-          <button type="button" onClick={() => setStep(CLOSING)} aria-current={step === CLOSING ? 'step' : undefined}>
+          <button type="button" onClick={() => go(CLOSING)} aria-current={step === CLOSING ? 'step' : undefined}>
             <span className="si-tick__dot" aria-hidden="true" />
             <span className="si-tick__year">Now</span>
             <span className="si-tick__name">The data</span>

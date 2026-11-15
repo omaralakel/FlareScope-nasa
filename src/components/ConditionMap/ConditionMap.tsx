@@ -17,6 +17,8 @@ export type ConditionMapProps = {
   /** Flammability model; defaults to fitLogistic(dataset.tests). Pass null to force "no model". */
   model?: FlamModel | null;
   xAxis?: XAxisMode;
+  /** Changing this number snaps the axis back to xAxis (presenter mode). */
+  axisResetKey?: number;
   onSelectInvestigation?(id: string): void;
 };
 
@@ -141,7 +143,7 @@ const PAGE_STEP = 10;
 
 /* ------------------------------------------------------------------ component */
 
-export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', onSelectInvestigation }: ConditionMapProps) {
+export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', axisResetKey = 0, onSelectInvestigation }: ConditionMapProps) {
   const store = useStore();
   const [mode, setMode] = useState<XAxisMode>(xAxis);
   const [showBurner, setShowBurner] = useState(false);
@@ -154,8 +156,10 @@ export function ConditionMap({ dataset, model: modelProp, xAxis = 'pressure', on
 
   // Follow the xAxis prop when the parent changes it (derived-state pattern, no effect).
   const [prevXAxis, setPrevXAxis] = useState(xAxis);
-  if (prevXAxis !== xAxis) {
+  const [prevResetKey, setPrevResetKey] = useState(axisResetKey);
+  if (prevXAxis !== xAxis || prevResetKey !== axisResetKey) {
     setPrevXAxis(xAxis);
+    setPrevResetKey(axisResetKey);
     setMode(xAxis);
   }
 
