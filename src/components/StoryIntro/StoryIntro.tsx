@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type FocusEvent, type MouseEvent } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { dataset } from '../../data/dataset';
 import { INCIDENTS, type Incident } from '../../data/incidents';
@@ -23,6 +23,9 @@ function isTypingTarget(t: EventTarget | null) {
 function Connector({ incident, animate }: { incident: Incident; animate: boolean }) {
   const t = (d: number, dur = 0.5) => (animate ? { delay: d, duration: dur, ease: EASE } : { duration: 0 });
   const n = incident.links.length;
+  const whyId = useId();
+  const [activeId, setActiveId] = useState(incident.links[0]?.id);
+  const active = incident.links.find((l) => l.id === activeId) ?? incident.links[0];
   return (
     <div className="si-links">
       <motion.span
@@ -41,20 +44,51 @@ function Connector({ incident, animate }: { incident: Incident; animate: boolean
         transition={t(1.25, 0.5)}
       />
       <p className="si-links__label">In the PSI data</p>
-      <ul className="si-chips" aria-label={`Investigations linked to ${incident.title}`}>
-        {incident.links.map((l, i) => (
-          <motion.li
-            key={l.id}
-            className="si-chip"
-            title={l.why}
-            initial={{ opacity: animate ? 0 : 1, y: animate ? 6 : 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={t(1.6 + i * 0.09, 0.4)}
-          >
-            {NAMES.get(l.id) ?? l.id}
-          </motion.li>
-        ))}
-      </ul>
+      {animate ? (
+        <>
+          <ul className="si-chips" aria-label={`Investigations linked to ${incident.title}`}>
+            {incident.links.map((l, i) => (
+              <motion.li
+                key={l.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={t(1.6 + i * 0.09, 0.4)}
+              >
+                <button
+                  type="button"
+                  className={`si-chip${l.id === active?.id ? ' si-chip--on' : ''}`}
+                  aria-pressed={l.id === active?.id}
+                  aria-describedby={l.id === active?.id ? whyId : undefined}
+                  onMouseEnter={() => setActiveId(l.id)}
+                  onFocus={() => setActiveId(l.id)}
+                  onClick={() => setActiveId(l.id)}
+                >
+                  {NAMES.get(l.id) ?? l.id}
+                </button>
+              </motion.li>
+            ))}
+          </ul>
+          {active && (
+            <motion.p
+              id={whyId}
+              className="si-why"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={t(1.6 + n * 0.09, 0.4)}
+            >
+              <span className="si-why__name">{NAMES.get(active.id) ?? active.id}:</span> {active.why}
+            </motion.p>
+          )}
+        </>
+      ) : (
+        <ul className="si-whys" aria-label={`Investigations linked to ${incident.title}`}>
+          {incident.links.map((l) => (
+            <li key={l.id}>
+              <span className="si-chip">{NAMES.get(l.id) ?? l.id}</span> <span className="si-whys__text">{l.why}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       {incident.scopeNote && <p className="si-scope">{incident.scopeNote}</p>}
     </div>
   );
@@ -65,7 +99,7 @@ function IncidentView({ incident, animate }: { incident: Incident; animate: bool
   const rise = { initial: { opacity: animate ? 0 : 1, y: animate ? 12 : 0 }, animate: { opacity: 1, y: 0 } };
   return (
     <article className="si-incident" aria-labelledby={`si-${incident.id}`}>
-      <motion.p className="si-incident__year" {...rise} transition={t(0)}>{incident.year}</motion.p>
+      <motion.p className="si-incident__year" {...rise} transition={t(0)}>{incident.when}</motion.p>
       <motion.h2 className="si-incident__title" id={`si-${incident.id}`} {...rise} transition={t(0.1)}>
         {incident.title}
       </motion.h2>
@@ -121,15 +155,20 @@ function Closing({ onDone, animate }: { onDone: () => void; animate: boolean }) 
 export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
   const reduce = useReducedMotion();
   const [step, setStep] = useState(0);
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
+  const [done, setDone] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const rootRef = useRef<HTMLElement>(null);
 
+  const finish = useCallback(() => { setDone(true); onDone(); }, [onDone]);
   const next = useCallback(() => setStep((s) => Math.min(CLOSING, s + 1)), []);
   const prev = useCallback(() => setStep((s) => Math.max(0, s - 1)), []);
 
   // Only listen for presenter keys while the intro is on screen.
   useEffect(() => {
     const el = rootRef.current;
+    // Without IntersectionObserver we cannot tell if the intro is on screen, so keys stay off (visible = false).
     if (!el || typeof IntersectionObserver === 'undefined') return;
     const io = new IntersectionObserver(([e]) => setVisible(e.intersectionRatio > 0.5), { threshold: [0, 0.5, 1] });
     io.observe(el);
@@ -137,22 +176,34 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
   }, []);
 
   useEffect(() => {
-    if (reduce || !visible) return;
+    if (reduce || !visible || done) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || isTypingTarget(e.target)) return;
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') { e.preventDefault(); next(); }
-      else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey || isTypingTarget(e.target)) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
+      else if (e.key === ' ') {
+        // Let Space press a focused button or link as usual.
+        if (e.target instanceof HTMLElement && e.target.closest('button, a')) return;
+        e.preventDefault();
+        next();
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [reduce, visible, next, prev]);
+  }, [reduce, visible, done, next, prev]);
 
-  // Gentle auto-advance; any manual step restarts the timer. Stops on the closing line.
+  // Gentle auto-advance; any manual step restarts the timer. Stops on the closing line,
+  // after onDone, and pauses while the pointer is over the intro or focus is inside it.
+  const paused = hovered || focused;
   useEffect(() => {
-    if (reduce || !visible || !stepMs || step >= CLOSING) return;
+    if (reduce || !visible || done || paused || !stepMs || step >= CLOSING) return;
     const id = window.setTimeout(next, stepMs);
     return () => window.clearTimeout(id);
-  }, [reduce, visible, stepMs, step, next]);
+  }, [reduce, visible, done, paused, stepMs, step, next]);
+
+  const onBlur = (e: FocusEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
+  };
 
   if (reduce) {
     return (
@@ -161,7 +212,7 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
         <div className="si-static-list">
           {INCIDENTS.map((inc) => <IncidentView key={inc.id} incident={inc} animate={false} />)}
         </div>
-        <Closing onDone={onDone} animate={false} />
+        <Closing onDone={finish} animate={false} />
       </section>
     );
   }
@@ -172,10 +223,19 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
   };
 
   return (
-    <section ref={rootRef} className="si" aria-label="Fires in spaceflight" aria-roledescription="story">
+    <section
+      ref={rootRef}
+      className="si"
+      aria-label="Fires in spaceflight"
+      aria-roledescription="story"
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={onBlur}
+    >
       <div className="si-top">
         <p className="si-kicker">Fires in spaceflight</p>
-        <button type="button" className="si-skip" onClick={onDone}>Skip to missions</button>
+        <button type="button" className="si-skip" onClick={finish}>Skip to missions</button>
       </div>
 
       <ol className="si-timeline" aria-label="Timeline">
@@ -183,7 +243,7 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
           <li key={inc.id} className={`si-tick${i === step ? ' si-tick--on' : ''}${i < step ? ' si-tick--past' : ''}`}>
             <button type="button" onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined}>
               <span className="si-tick__dot" aria-hidden="true" />
-              <span className="si-tick__year">{inc.year}</span>
+              <span className="si-tick__year">{inc.when}</span>
               <span className="si-tick__name">{inc.title}</span>
             </button>
           </li>
@@ -206,13 +266,13 @@ export function StoryIntro({ onDone, stepMs = 9000 }: Props) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.25 } }}
           >
-            {step < CLOSING ? <IncidentView incident={INCIDENTS[step]} animate /> : <Closing onDone={onDone} animate />}
+            {step < CLOSING ? <IncidentView incident={INCIDENTS[step]} animate /> : <Closing onDone={finish} animate />}
           </motion.div>
         </AnimatePresence>
       </div>
 
       <p className="si-hint" aria-hidden="true">
-        {step < CLOSING ? 'Click or press → to continue' : '← to go back'}
+        {step < CLOSING ? 'Click, → or Space to continue' : '← to go back'}
       </p>
     </section>
   );

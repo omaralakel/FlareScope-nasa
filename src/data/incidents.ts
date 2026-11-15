@@ -8,7 +8,10 @@ export type InvestigationLink = { id: string; why: string };
 
 export type Incident = {
   id: string;
-  year: number;
+  /** Numeric year, only when the source states it. */
+  year: number | null;
+  /** What the timeline shows: the year, or a source-backed word such as "Recent". */
+  when: string;
   title: string;
   summary: string;
   failureMode: string;
@@ -54,6 +57,7 @@ export const INCIDENTS: Incident[] = [
   {
     id: 'apollo-1',
     year: 1967,
+    when: '1967',
     title: 'Apollo 1',
     summary:
       'During a ground test on the launch pad, a fire in the pure-oxygen cabin killed Grissom, White and Chaffee. It spread very quickly through combustible materials, and the hatch could not be opened in time.',
@@ -66,6 +70,7 @@ export const INCIDENTS: Incident[] = [
   {
     id: 'apollo-13',
     year: 1970,
+    when: '1970',
     title: 'Apollo 13',
     summary:
       'An oxygen tank exploded on the way to the Moon. Before launch, a pad test had overheated the tank heaters and damaged the Teflon insulation inside. The crew used the lunar module as a lifeboat and came home.',
@@ -79,6 +84,7 @@ export const INCIDENTS: Incident[] = [
   {
     id: 'mir',
     year: 1997,
+    when: '1997',
     title: 'Mir',
     summary:
       'An oxygen-generating canister caught fire with six people aboard. The crew put on masks and fought it with extinguishers; dense smoke filled the station and took hours to clear.',
@@ -90,9 +96,11 @@ export const INCIDENTS: Incident[] = [
   },
   {
     id: 'artemis-2',
-    year: 2026,
+    // The challenge brief calls it "the recent Artemis II mission" and gives no year.
+    year: null,
+    when: 'Recent',
     title: 'Artemis II',
-    summary: "The Orion crew's fire alarm went off deep in space. Knowing whether it is really smoke still matters.",
+    summary: "On the recent Artemis II mission the crew's fire alarm went off far from Earth. Knowing whether it is really smoke still matters.",
     failureMode: 'Fire detection and alarms',
     quote: {
       text: "make the fire alarm go off in your spacecraft when you're still about 80,000 miles from home",
@@ -101,6 +109,6 @@ export const INCIDENTS: Incident[] = [
     links: artemis2,
     linkedInvestigationIds: ids(artemis2),
     sourceUrl: 'https://www.spaceappschallenge.org/',
-    sourceLabel: 'NASA Space Apps 2026 challenge brief',
+    sourceLabel: 'NASA Space Apps 2026 challenge brief: Flame in Freefall',
   },
 ];

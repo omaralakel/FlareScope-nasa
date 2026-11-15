@@ -126,3 +126,17 @@
 @media (prefers-reduced-motion: reduce) {
   .si-tick__dot { transition: none; }
 }
+
+/* Chips are buttons; the active chip's reason is shown as a visible caption. */
+button.si-chip { cursor: pointer; }
+button.si-chip:hover { background: var(--surface-2); }
+.si-chip--on { background: var(--text); color: var(--bg); border-color: var(--text); }
+button.si-chip--on:hover { background: var(--accent-neutral); }
+.si-why {
+  margin: 12px 0 0; max-width: 60ch; min-height: 2.9em; text-align: center;
+  font-size: 15px; line-height: 1.45; color: var(--text);
+}
+.si-why__name { font-family: var(--font-mono); color: var(--muted); }
+.si-whys { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.si-whys li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.si-whys__text { font-size: 15px; line-height: 1.45; color: var(--text); }

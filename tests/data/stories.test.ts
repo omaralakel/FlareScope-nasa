@@ -23,8 +23,18 @@ describe('story and spinoff data', () => {
     expect(item.sourceLabel.trim()).not.toBe('');
   });
 
-  it('keeps every incident year in order', () => {
-    const years = INCIDENTS.map((i) => i.year);
+  it('keeps stated incident years in order and shows a label for each', () => {
+    const years = INCIDENTS.map((i) => i.year).filter((y): y is number => y !== null);
     expect([...years].sort((a, b) => a - b)).toEqual(years);
+    for (const i of INCIDENTS) {
+      expect(i.when.trim()).not.toBe('');
+      if (i.year !== null) expect(i.when).toBe(String(i.year));
+    }
+  });
+
+  it('does not invent a year for Artemis II', () => {
+    const a = INCIDENTS.find((i) => i.id === 'artemis-2')!;
+    expect(a.year).toBeNull();
+    expect(a.sourceLabel).toBe('NASA Space Apps 2026 challenge brief: Flame in Freefall');
   });
 });
