@@ -1,0 +1,50 @@
+.cmp { padding: 0 28px 40px; }
+.cmp__title { margin: 0 0 4px; font-size: 20px; }
+.cmp__sub { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.cmp__pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.cmp-pick { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+.cmp-pick select { font: inherit; font-size: 14px; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; width: 100%; }
+.cmp-pick select:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
+.cmp__cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+.cmp__empty { border: 1px dashed var(--border-strong); border-radius: 10px; padding: 28px; color: var(--muted); text-align: center; font-size: 14px; }
+.cmp__diff { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; margin-top: 12px; }
+.cmp__panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+.cmp__panel h3 { margin: 0 0 8px; font-size: 16px; }
+.cmp__panel--same { border-left: 3px solid var(--cat-2); }
+.cmp__panel--diff { border-left: 3px solid var(--flame-orange); }
+.cmp__panel ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.cmp__panel dl { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.cmp__d { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.cmp__d dt { font-weight: 600; margin-bottom: 2px; }
+.cmp__d dd { margin: 2px 0; color: var(--text); overflow-wrap: anywhere; }
+.cmp__ab { display: inline-block; min-width: 18px; font-family: var(--font-mono); color: var(--muted); }
+
+.dna { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.dna__head { display: flex; gap: 12px; align-items: flex-start; }
+.dna__phase { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; color: var(--muted); min-width: 56px; }
+.dna-glyph { color: var(--accent-neutral); }
+.dna__name { margin: 0; font-size: 16px; line-height: 1.3; }
+.dna__meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.dna__badge { font-size: 13px; padding: 4px 10px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-2); color: var(--text); overflow-wrap: anywhere; }
+.dna-row__head { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-bottom: 4px; }
+.dna-row__label { color: var(--muted); }
+.dna-row__val { font-family: var(--font-mono); }
+.dna-row__val--none { color: var(--muted); font-style: italic; }
+.dna-track { position: relative; height: 12px; background: var(--border); border-radius: 6px; overflow: visible; }
+.dna-track--none { background: repeating-linear-gradient(45deg, var(--border) 0 5px, var(--border-strong) 5px 10px); }
+.dna-fill { position: absolute; top: 0; bottom: 0; border-radius: 6px; }
+.dna-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text); opacity: 0.85; }
+.dna-scale { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); font-family: var(--font-mono); margin-top: 2px; }
+.dna__legend { margin: 0; font-size: 13px; color: var(--muted); }
+.dna__sec h4 { margin: 0 0 4px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+.dna__none { margin: 0; font-size: 14px; color: var(--muted); font-style: italic; }
+.dna__list { margin: 0; padding-left: 18px; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.dna__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dna__chip { font-size: 13px; padding: 2px 8px; border: 1px solid var(--border-strong); border-radius: 999px; color: var(--text); }
+.dna__finding { border-bottom: 1px dotted var(--muted); cursor: help; }
+.dna__link { font-size: 14px; color: var(--accent-neutral); }
+.dna__link:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 2px; }
+@media (max-width: 760px) {
+  .cmp { padding: 0 16px 32px; }
+  .cmp__pickers, .cmp__cards, .cmp__diff { grid-template-columns: 1fr; }
+}
