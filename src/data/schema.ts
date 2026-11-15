@@ -82,12 +82,29 @@ export const InvestigationSchema = z.object({
 });
 export type Investigation = z.infer<typeof InvestigationSchema>;
 
+/**
+ * Where o2Percent was measured:
+ * - 'ambient': the surrounding atmosphere the flame burns in (comparable to a habitat atmosphere).
+ * - 'burner_stream': the O2 fraction of the oxidizer issued from a burner into a fuel-filled chamber
+ *   (inverse flames). NOT an atmosphere; do not plot against habitat O2.
+ */
+export const O2BasisSchema = z.enum(['ambient', 'burner_stream']);
+export type O2Basis = z.infer<typeof O2BasisSchema>;
+
 export const TestPointSchema = z.object({
   investigationId: z.string().min(1),
   o2Percent: z.number().min(0).max(100),
+  o2Basis: O2BasisSchema,
   pressurePsi: z.number().nullable(),
   flowCmS: z.number().nullable(),
   fuel: z.string(),
+  /**
+   * - 'burned': a sustained flame was observed.
+   * - 'no_ignition': no flame was established.
+   * - 'extinguished': a flame existed and then went out (end of fuel, flow reduction, or
+   *   self-extinction). This is evidence of flammability, NOT of non-flammability.
+   * - 'measured': flame data was recorded but the outcome cannot be classified from the source.
+   */
   outcome: z.enum(['burned', 'extinguished', 'no_ignition', 'measured']),
   measured: z
     .object({ name: z.string(), value: z.number(), unit: z.string() })

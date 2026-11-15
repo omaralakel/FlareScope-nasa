@@ -77,6 +77,39 @@ describe('investigations.json', () => {
     expect(o12!.o2Percent).toBeCloseTo(13.6, 6);
   });
 
+  it('flags every inverse-flame row as burner_stream O2 and everything else as ambient', () => {
+    for (const t of ds.tests) {
+      const inverse = /Inverse Flame/i.test(t.source);
+      expect(t.o2Basis, t.source).toBe(inverse ? 'burner_stream' : 'ambient');
+    }
+    expect(ds.tests.filter((t) => t.o2Basis === 'burner_stream').length).toBe(263);
+  });
+
+  it('derives investigation O2 and pressure ranges from ambient points only', () => {
+    for (const inv of ds.investigations) {
+      for (const field of ['o2Percent', 'pressurePsi'] as const) {
+        const range = inv[field];
+        if (range.confidence !== 'derived') continue;
+        const pts = ds.tests.filter((t) => t.investigationId === inv.id && t[field] !== null);
+        const ambient = pts.filter((t) => t.o2Basis === 'ambient');
+        if (ambient.length) {
+          const vals = ambient.map((t) => t[field] as number);
+          expect(range.value, `${inv.id} ${field}`).toEqual({ min: Math.min(...vals), max: Math.max(...vals) });
+        } else if (pts.length) {
+          expect(range.source, `${inv.id} ${field}`).toMatch(/burner-stream O2, not ambient/);
+        }
+      }
+    }
+  });
+
+  it('keeps CFI-G cool-flame and contradictory rows out of no_ignition', () => {
+    const file = 'PSI-159 Experimental table PSI-159_Experimental table_CFI-G_Normal Flames.csv';
+    for (const row of [36, 38, 39]) {
+      const t = ds.tests.find((x) => x.source === `${file}, row ${row}`);
+      expect(t!.outcome, `row ${row}`).toBe('measured');
+    }
+  });
+
   it('is reproducible from data-raw by scripts/build-dataset.ts', () => {
     const rebuilt = buildDataset();
     expect(rebuilt.tests).toEqual(raw.tests);

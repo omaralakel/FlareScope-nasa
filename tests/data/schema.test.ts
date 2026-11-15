@@ -32,6 +32,7 @@ function makeTest(overrides: Record<string, unknown> = {}) {
   return {
     investigationId: 'inv-1',
     o2Percent: 21,
+    o2Basis: 'ambient',
     pressurePsi: 14.7,
     flowCmS: null,
     fuel: 'PMMA',
@@ -110,5 +111,13 @@ describe('dataset schema', () => {
   it('rejects o2Percent outside 0..100', () => {
     expect(() => loadDataset(makeDataset({ tests: [makeTest({ o2Percent: 101 })] }))).toThrow(/o2Percent/);
     expect(() => loadDataset(makeDataset({ tests: [makeTest({ o2Percent: -1 })] }))).toThrow(/o2Percent/);
+  });
+
+  it('rejects a TestPoint with a missing or invalid o2Basis', () => {
+    const { o2Basis: _omit, ...noBasis } = makeTest();
+    void _omit;
+    expect(() => loadDataset(makeDataset({ tests: [noBasis] }))).toThrow(/o2Basis/);
+    expect(() => loadDataset(makeDataset({ tests: [makeTest({ o2Basis: 'chamber' })] }))).toThrow(/o2Basis/);
+    expect(() => loadDataset(makeDataset({ tests: [makeTest({ o2Basis: 'burner_stream' })] }))).not.toThrow();
   });
 });

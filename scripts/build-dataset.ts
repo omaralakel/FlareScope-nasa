@@ -124,10 +124,12 @@ function point(
   fuel: string,
   outcome: TestPoint['outcome'],
   measured?: Measured,
+  o2Basis: TestPoint['o2Basis'] = 'ambient',
 ): TestPoint {
   const p: TestPoint = {
     investigationId,
     o2Percent: r4(o2Percent),
+    o2Basis,
     pressurePsi: pressurePsi === null ? null : r4(pressurePsi),
     flowCmS: flowCmS === null ? null : r4(flowCmS),
     fuel,
@@ -258,8 +260,11 @@ function parseCfi(): Parsed {
   return { tests, extra: [] };
 }
 
-function cfiGOutcome(hot: string, endMode: string): TestPoint['outcome'] {
+function cfiGOutcome(hot: string, endMode: string, comment: string): TestPoint['outcome'] {
   const h = hot.trim().toLowerCase();
+  // "direct cool - no hot ignition" (a cool flame existed) and the contradictory
+  // Hot ignition = No with comment "hot flame" are not no-ignition: keep as measured.
+  if (h === 'no' && /cool|hot flame/i.test(comment)) return 'measured';
   if (h === 'no') return 'no_ignition';
   if (h === 'yes') return endMode.trim() === 'SE' ? 'extinguished' : 'burned';
   return 'measured'; // e.g. "flash": not a sustained ignition, not stated as failure either
@@ -275,10 +280,11 @@ function parseCfiG(): Parsed {
     if (x === null) return;
     const bar = num(r[6]);
     const burn = num(r[14]);
-    const outcome = cfiGOutcome(r[13] ?? '', r[15] ?? '');
+    const outcome = cfiGOutcome(r[13] ?? '', r[15] ?? '', r[19] ?? '');
     tests.push(point('acme-cfi-g', 159, inv, i, x * 100, bar === null ? null : bar * BAR_TO_PSI, null,
       `${fuel} (inverse flame)`, outcome,
-      outcome !== 'no_ignition' && outcome !== 'measured' && burn !== null ? { name: 'Burn time', value: burn, unit: 's' } : undefined));
+      outcome !== 'no_ignition' && outcome !== 'measured' && burn !== null ? { name: 'Burn time', value: burn, unit: 's' } : undefined,
+      'burner_stream'));
   });
   const nor = readTable('PSI-159_Experimental table_CFI-G_Normal Flames.csv');
   nor.rows.forEach((r, i) => {
@@ -286,7 +292,7 @@ function parseCfiG(): Parsed {
     if (x === null) return;
     const bar = num(r[7]);
     const burn = num(r[14]);
-    const outcome = cfiGOutcome(r[13] ?? '', r[15] ?? '');
+    const outcome = cfiGOutcome(r[13] ?? '', r[15] ?? '', r[17] ?? '');
     tests.push(point('acme-cfi-g', 159, nor, i, x * 100, bar === null ? null : bar * BAR_TO_PSI, null,
       `${clean(r[2])} (normal flame)`, outcome,
       outcome !== 'no_ignition' && outcome !== 'measured' && burn !== null ? { name: 'Burn time', value: burn, unit: 's' } : undefined));
@@ -304,7 +310,7 @@ function parseFlameDesign(): Parsed {
     if (x === null) return;
     const atm = num(r[11]); // inverse table: pmean (atm) is column 11 (no Fuel column)
     tests.push(point('acme-flame-design', 10, inv, i, x * 100, atm === null ? null : atm * ATM_TO_PSI, null,
-      'C2H4 (inverse flame)', 'measured', tad(num(r[13]))));
+      'C2H4 (inverse flame)', 'measured', tad(num(r[13])), 'burner_stream'));
   });
   const nor = readTable('PSI-10_Experimental table_Flame Design_Normal Flame.csv');
   nor.rows.forEach((r, i) => {
@@ -414,12 +420,16 @@ function sourcedRange(
   tests: TestPoint[],
   extra: ExtraRange[],
 ): Sourced<Range> {
-  const fromTests = tests.filter((t) => t.investigationId === id && t[field] !== null);
+  const withField = tests.filter((t) => t.investigationId === id && t[field] !== null);
+  const ambient = withField.filter((t) => t.o2Basis === 'ambient');
+  // Ranges describe the atmosphere: use ambient points only; fall back to burner-stream points, labelled.
+  const fromTests = ambient.length ? ambient : withField;
   if (fromTests.length) {
     const files = [...new Set(fromTests.map((t) => t.source.replace(/^PSI-\d+ Experimental table (.+), row \d+$/, '$1')))];
+    const label = ambient.length ? 'ambient-O2 test rows' : 'test rows (burner-stream O2, not ambient)';
     return {
       value: rangeOf(fromTests.map((t) => t[field] as number)),
-      source: `Derived from ${fromTests.length} test rows in PSI-${c.psi} Experimental table ${files.join('; ')}; ${psiUrl(c.psi)}`,
+      source: `Derived from ${fromTests.length} ${label} in PSI-${c.psi} Experimental table ${files.join('; ')}; ${psiUrl(c.psi)}`,
       confidence: 'derived',
     };
   }
