@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAskHandler, MODEL } from '../../api/ask';
+import { createAskHandler, MODEL, SERVER_TIMEOUT_MS } from '../../api/ask';
+import { ASK_TIMEOUT_MS } from '../../src/components/Ask/askClient';
 
 const post = (body: unknown, method = 'POST') =>
   new Request('http://localhost/api/ask', {
@@ -84,6 +85,29 @@ describe('api/ask handler', () => {
     expect((await h(post({ question: 'hi' }))).status).toBe(502);
   });
 
+  it('server timeout is shorter than the client timeout so the 502 arrives first', () => {
+    expect(SERVER_TIMEOUT_MS).toBeLessThanOrEqual(ASK_TIMEOUT_MS - 1_000);
+  });
+
+  it('rate limits per IP and lets the window expire', async () => {
+    vi.useFakeTimers();
+    try {
+      const h = createAskHandler({ getApiKey: () => KEY, callModel: async () => ({ answer: 'ok', citations: [] }), rateLimit: 2 });
+      const req = () => {
+        const r = post({ question: 'q' });
+        r.headers.set('x-forwarded-for', '1.2.3.4');
+        return h(r);
+      };
+      expect((await req()).status).toBe(200);
+      expect((await req()).status).toBe(200);
+      expect((await req()).status).toBe(429);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect((await req()).status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('times out after the server timeout and returns 502', async () => {
     vi.useFakeTimers();
     try {
@@ -96,7 +120,9 @@ describe('api/ask handler', () => {
         },
       });
       const p = h(post({ question: 'slow?' }));
-      await vi.advanceTimersByTimeAsync(15_000);
+      await vi.advanceTimersByTimeAsync(SERVER_TIMEOUT_MS - 1);
+      expect(signal?.aborted).toBe(false);
+      await vi.advanceTimersByTimeAsync(1);
       const res = await p;
       expect(res.status).toBe(502);
       expect(signal?.aborted).toBe(true);

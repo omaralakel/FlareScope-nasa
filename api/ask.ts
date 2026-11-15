@@ -15,7 +15,8 @@ import { buildSystemPrompt } from './prompt.js';
 
 /** Fast, capable model for live Q&A (latency matters during the presentation). */
 export const MODEL = 'claude-sonnet-5-5';
-export const SERVER_TIMEOUT_MS = 15_000;
+/** Below the client's 15 s abort so the 502 reaches the client before it gives up. */
+export const SERVER_TIMEOUT_MS = 13_000;
 export const MAX_QUESTION = 500;
 
 export const AnswerSchema = z.object({
@@ -97,8 +98,14 @@ export function createAskHandler(deps: Deps = {}) {
     if (limit > 0) {
       const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'local';
       const now = Date.now();
+      for (const [key, times] of hits) {
+        if (times.every((t) => now - t >= 60_000)) hits.delete(key);
+      }
       const recent = (hits.get(ip) ?? []).filter((t) => now - t < 60_000);
-      if (recent.length >= limit) return json(429, { error: 'Too many questions, try again in a minute' });
+      if (recent.length >= limit) {
+        hits.set(ip, recent);
+        return json(429, { error: 'Too many questions, try again in a minute' });
+      }
       hits.set(ip, [...recent, now]);
     }
 

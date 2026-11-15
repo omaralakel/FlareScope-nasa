@@ -43,14 +43,17 @@ export function bestCachedAnswer(question: string): { entry: CachedAnswer; score
   return best;
 }
 
-/** A cached answer for an offline moment: the matching one, else a pointer to the closest one. */
+/** Word overlap needed before a cached answer is treated as answering the question. */
+export const MATCH_THRESHOLD = 0.6;
+
+export const OFFLINE_MESSAGE =
+  'Live answers are offline right now. Try one of the suggested questions; they are answered from the PSI data.';
+
+/** Offline answer: the matching cached answer, else a generic message with no citations. */
 export function cachedFallback(question: string): AskResult {
   const { entry, score } = bestCachedAnswer(question);
-  const answer =
-    score >= 0.6
-      ? entry.answer
-      : `Live answers are offline; here is what the data shows about a related question, "${entry.question}" ${entry.answer}`;
-  return { answer, citations: entry.citations, cached: true };
+  if (score >= MATCH_THRESHOLD) return { answer: entry.answer, citations: entry.citations, cached: true };
+  return { answer: OFFLINE_MESSAGE, citations: [], cached: true };
 }
 
 function parseLive(body: unknown): AskResult | null {
@@ -83,4 +86,15 @@ export async function ask(question: string, fetchFn: typeof fetch = fetch): Prom
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** One chip per investigation, keeping every source it was cited with (first-seen order). */
+export function groupCitations(cites: Citation[]): { investigationId: string; sources: string[] }[] {
+  const by = new Map<string, string[]>();
+  for (const c of cites) {
+    const list = by.get(c.investigationId) ?? [];
+    if (!list.includes(c.source)) list.push(c.source);
+    by.set(c.investigationId, list);
+  }
+  return [...by].map(([investigationId, sources]) => ({ investigationId, sources }));
 }

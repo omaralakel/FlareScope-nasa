@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ask, bestCachedAnswer, CACHED_ANSWERS } from '../../src/components/Ask/askClient';
+import { ask, bestCachedAnswer, CACHED_ANSWERS, groupCitations, MATCH_THRESHOLD, OFFLINE_MESSAGE } from '../../src/components/Ask/askClient';
 import { dataset } from '../../src/data/dataset';
 
 const ok = (body: unknown) =>
@@ -75,12 +75,20 @@ describe('askClient', () => {
     });
   });
 
-  it('points to the closest cached answer when nothing matches well', async () => {
+  it('returns a generic offline message with no citations when nothing matches (score 0)', async () => {
     const fetchFn = vi.fn(() => Promise.reject(new Error('offline'))) as unknown as typeof fetch;
-    const r = await ask('Tell me about rover wheels and batteries', fetchFn);
-    expect(r.cached).toBe(true);
-    expect(r.answer).toMatch(/^Live answers are offline; here is what the data shows about/);
-    expect(r.answer).toContain(CACHED_ANSWERS[4].answer);
+    expect(bestCachedAnswer('What propellant do rockets use?').score).toBe(0);
+    const r = await ask('What propellant do rockets use?', fetchFn);
+    expect(r).toEqual({ answer: OFFLINE_MESSAGE, citations: [], cached: true });
+  });
+
+  it('returns the generic offline message when the match is below the threshold', async () => {
+    const fetchFn = vi.fn(() => Promise.reject(new Error('offline'))) as unknown as typeof fetch;
+    const q = 'Tell me about rover wheels and batteries';
+    const { score } = bestCachedAnswer(q);
+    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThan(MATCH_THRESHOLD);
+    expect(await ask(q, fetchFn)).toEqual({ answer: OFFLINE_MESSAGE, citations: [], cached: true });
   });
 });
 
@@ -105,5 +113,31 @@ describe('cachedAnswers.json', () => {
     }
     expect(c.answer.split(/\s+/).filter(Boolean).length).toBeLessThanOrEqual(120);
     expect(c.answer).not.toMatch(/--|—/);
+  });
+  it.each(CACHED_ANSWERS.map((c) => [c.question, c] as const))('%s: every citation source appears verbatim in the dataset', (_q, c) => {
+    for (const cit of c.citations) {
+      const inv = dataset.investigations.find((i) => i.id === cit.investigationId)!;
+      const sources = [
+        inv.o2Percent.source, inv.pressurePsi.source, inv.flowCmS.source, inv.sampleGeometry.source,
+        ...inv.findings.map((f) => f.source),
+      ].filter((s): s is string => !!s);
+      expect(sources, `${cit.investigationId}: ${cit.source}`).toContain(cit.source);
+    }
+  });
+});
+
+describe('groupCitations', () => {
+  it('makes one entry per investigation, keeping each distinct source in order', () => {
+    expect(
+      groupCitations([
+        { investigationId: 'bass', source: 'a' },
+        { investigationId: 'flex', source: 'b' },
+        { investigationId: 'bass', source: 'c' },
+        { investigationId: 'bass', source: 'a' },
+      ]),
+    ).toEqual([
+      { investigationId: 'bass', sources: ['a', 'c'] },
+      { investigationId: 'flex', sources: ['b'] },
+    ]);
   });
 });

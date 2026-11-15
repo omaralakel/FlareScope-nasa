@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { dataset } from '../../data/dataset';
 import { shortName } from '../../data/names';
-import { ask, CACHED_ANSWERS, type AskResult } from './askClient';
+import { ask, CACHED_ANSWERS, groupCitations, type AskResult } from './askClient';
 import './askPanel.css';
 
 type Props = { onSelectInvestigation?: (id: string) => void };
@@ -44,8 +44,6 @@ function Answer({ result, asked, instant, onSelectInvestigation }: AnswerProps) 
         <span className="ask-answer__q">{asked}</span>
         {result.cached && <span className="ask-badge">Cached answer (offline)</span>}
       </header>
-      {/* Screen readers get the full answer once; the visual typewriter is hidden from them. */}
-      <p className="sr-only" role="status">{(result.cached ? 'Cached answer. ' : '') + result.answer}</p>
       <p className="ask-answer__text" aria-hidden="true">
         {shown}
         {!done && <span className="ask-answer__caret" />}
@@ -54,18 +52,19 @@ function Answer({ result, asked, instant, onSelectInvestigation }: AnswerProps) 
         <div className="ask-answer__cites">
           <span className="ask-answer__label">Sources</span>
           <ul>
-            {result.citations.map((c, i) => {
+            {groupCitations(result.citations).map((c) => {
               const inv = byId.get(c.investigationId);
+              const sources = c.sources.join(' | ');
               return (
-                <li key={`${c.investigationId}-${i}`}>
+                <li key={c.investigationId}>
                   <button
                     type="button"
                     className="ask-cite"
-                    title={c.source}
+                    title={sources}
                     onClick={() => onSelectInvestigation?.(c.investigationId)}
                   >
                     {inv ? shortName(inv) : c.investigationId}
-                    <span className="sr-only">: {c.source}. Opens the investigation card.</span>
+                    <span className="sr-only">: {sources}. Opens the investigation card.</span>
                   </button>
                 </li>
               );
@@ -129,8 +128,12 @@ export function AskPanel({ onSelectInvestigation }: Props) {
         </button>
       </form>
 
-      <div className="ask__out" aria-busy={pending}>
-        {pending && <p className="ask__status" role="status">Looking through the PSI data…</p>}
+      {/* Always-mounted live region: screen readers hear status and the full answer once; the visual typewriter is hidden from them. */}
+      <p className="sr-only" role="status" aria-live="polite">
+        {pending ? 'Looking through the PSI data.' : result ? (result.r.cached ? 'Cached answer. ' : '') + result.r.answer : ''}
+      </p>
+      <div className="ask__out">
+        {pending && <p className="ask__status" aria-hidden="true">Looking through the PSI data…</p>}
         {result && <Answer key={result.id} result={result.r} asked={result.q} instant={!!reduce} onSelectInvestigation={onSelectInvestigation} />}
       </div>
       <p className="ask__note">Answers come only from the PSI data in this app.</p>
