@@ -63,7 +63,7 @@ Optional: pre-generate the per-investigation insights with
 | P | Show or hide the step indicator |
 | Esc | Release focus from a field or widget so the arrows drive the demo again |
 
-Text fields (the Ask box) keep all keys until Esc. The map, sliders and mission picker keep only left/right arrows, Home, End and Space for themselves; PageUp/PageDown, 1 to 9 and P still drive the demo. Esc always hands the keys back.
+Text fields keep all keys until Esc, except that the single-line Ask box still passes PageUp/PageDown to the demo (so a clicker works while it has focus). The map, sliders and mission picker keep only left/right arrows, Home, End and Space for themselves; PageUp/PageDown, 1 to 9 and P still drive the demo. Esc always hands the keys back.
 
 ## Demo script (9 steps, one point each)
 

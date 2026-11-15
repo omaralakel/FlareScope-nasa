@@ -1,4 +1,5 @@
 import { useId, type CSSProperties } from 'react';
+import { fmtG } from '../../lib/format';
 import { GRAVITY_PRESETS } from '../../model/habitats';
 import { useStore } from '../../state/store';
 import './flame.css';
@@ -77,7 +78,7 @@ export function FlameControls() {
                 onClick={() => setCondition({ gravity: p.value })}
               >
                 <span>{p.label}</span>
-                <span className="fc-preset__val">{p.value}</span>
+                <span className="fc-preset__val">{fmtG(p.value)} g</span>
               </button>
             );
           })}

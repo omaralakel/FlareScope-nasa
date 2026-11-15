@@ -4,6 +4,7 @@ import { shortName } from '../../data/names';
 import {
   GRAVITY_PAIRS, isNoBurn, orbitPassEarthFail, SAFFIRE_II_ID, type GravityPair,
 } from '../../data/gravityPairs';
+import { fmtG } from '../../lib/format';
 import { GRAVITY_PRESETS, HABITATS } from '../../model/habitats';
 import { countOrbitalTests } from '../../model/orbital';
 import { useStore } from '../../state/store';
@@ -87,7 +88,7 @@ export function GravityBridge({ dataset, onSelectInvestigation }: Props) {
     <section className="gb" aria-labelledby="gb-title">
       <p className="gb__kicker">Gravity bridge · SAFFIRE-II paired burns</p>
       <h2 className="gb__title" id="gb-title">What didn't burn in orbit burned at 1 g</h2>
-      <p className="gb__sub">The Moon (0.166 g) and Mars (0.38 g) sit in between — and are untested in PSI.</p>
+      <p className="gb__sub">The Moon ({fmtG(GRAVITY_PRESETS.moon)} g) and Mars ({fmtG(GRAVITY_PRESETS.mars)} g) sit in between — and are untested in PSI.</p>
       <p className="gb__lede">
         In SAFFIRE-II, {flips.length} of {silicone.length} silicone samples had a burn length of
         about 0 in microgravity, yet burned completely in 1 g (samples {flips.map((p) => p.id).join(' and ')}).

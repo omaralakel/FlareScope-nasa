@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { useStore } from '../state/store';
+import { GRAVITY_PRESETS, type HabitatId } from '../model/habitats';
 
 /** The scripted demo path. Each id is also the DOM id of the section it scrolls to. */
 export const STEPS = ['intro', 'mission', 'flame', 'map', 'ranking', 'gravity', 'compare', 'ask', 'earth'] as const;
@@ -46,9 +47,10 @@ export type KeyCommand = PresenterAction | { type: 'toggleIndicator' } | { type:
 type KeyLike = { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean; repeat?: boolean };
 /**
  * body: the page itself. text: a text-entry field (owns every key but Esc).
+ * line: a single-line <input> (owns every key but Esc, PageUp and PageDown, which do nothing there).
  * widget: owns ←/→/Home/End/Space only (radio group, map, slider, summary). other: buttons, links, etc.
  */
-export type TargetInfo = { kind: 'body' | 'text' | 'widget' | 'other' };
+export type TargetInfo = { kind: 'body' | 'text' | 'line' | 'widget' | 'other' };
 
 /** Keys an arrow-owning widget keeps for itself. */
 const WIDGET_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End', ' ']);
@@ -59,7 +61,15 @@ export function keyCommand(e: KeyLike, target: TargetInfo): KeyCommand | null {
   const k = e.key;
   // Esc always comes to the presenter: it leaves whatever has focus.
   if (k === 'Escape') return { type: 'escape' };
-  if (target.kind === 'text' || e.repeat) return null;
+  if (e.repeat) return null;
+  if (target.kind === 'text') return null;
+  if (target.kind === 'line') {
+    // A clicker's PageUp/PageDown must still move the demo while the Ask box holds focus.
+    if (e.shiftKey) return null;
+    if (k === 'PageDown') return { type: 'next' };
+    if (k === 'PageUp') return { type: 'prev' };
+    return null;
+  }
   if (target.kind === 'widget' && WIDGET_KEYS.has(k)) return null;
   if (k === 'p' || k === 'P') return { type: 'toggleIndicator' };
   if (e.shiftKey) return null;
@@ -81,6 +91,9 @@ export function keyCommand(e: KeyLike, target: TargetInfo): KeyCommand | null {
 
 export const TEXT_ENTRY_SELECTOR =
   'input:not([type="range"]), textarea, select, [contenteditable]:not([contenteditable="false"])';
+/** Single-line text inputs (no multi-line, no select, no contenteditable). */
+export const SINGLE_LINE_SELECTOR =
+  'input:is([type="text"], [type="search"], [type="email"], [type="url"], [type="tel"], [type="password"], [type="number"], :not([type]))';
 /** Only the <summary> of a <details> owns keys, never the details body. */
 export const ARROW_WIDGET_SELECTOR = '[role="radiogroup"], [role="application"], input[type="range"], summary';
 
@@ -92,7 +105,9 @@ export function describeTarget(t: unknown, doc: DocLike = document): TargetInfo 
     return { kind: 'body' };
   }
   const el = t as ElLike;
-  if (el.closest(TEXT_ENTRY_SELECTOR)) return { kind: 'text' };
+  if (el.closest(TEXT_ENTRY_SELECTOR)) {
+    return el.closest(SINGLE_LINE_SELECTOR) ? { kind: 'line' } : { kind: 'text' };
+  }
   if (el.closest(ARROW_WIDGET_SELECTOR)) return { kind: 'widget' };
   return { kind: 'other' };
 }
@@ -122,7 +137,17 @@ export function pickStepInView(tops: number[], current: number, line: number, at
 
 export type IntroHandle = { next(): boolean; prev(): boolean };
 
-const MOON_G = 0.166;
+const MOON_G = GRAVITY_PRESETS.moon;
+
+/**
+ * Gravity for the flame drama ramp at progress p (0..1), or null when the ramp must stop
+ * because the habitat is no longer the Moon (a manual mission change wins over the ramp).
+ */
+export function dramaGravity(habitat: HabitatId, p: number): number | null {
+  if (habitat !== 'moon') return null;
+  const eased = 1 - Math.pow(1 - Math.min(1, Math.max(0, p)), 3);
+  return Math.round(MOON_G * eased * 1000) / 1000;
+}
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -181,7 +206,7 @@ export function usePresenter({ introRef, onMapReset }: Options) {
     if (dramaFrame.current !== null) cancelAnimationFrame(dramaFrame.current);
     dramaTimeout.current = null;
     dramaFrame.current = null;
-    if (running && snap) actions.current.store.setCondition({ gravity: MOON_G });
+    if (running && snap && actions.current.store.habitat === 'moon') actions.current.store.setCondition({ gravity: MOON_G });
   };
 
   const runSideEffects = useCallback((id: StepId) => {
@@ -201,8 +226,9 @@ export function usePresenter({ introRef, onMapReset }: Options) {
           const t0 = performance.now();
           const tick = (now: number) => {
             const p = Math.min(1, (now - t0) / 900);
-            const eased = 1 - Math.pow(1 - p, 3);
-            setCondition({ gravity: Math.round(MOON_G * eased * 1000) / 1000 });
+            const g = dramaGravity(actions.current.store.habitat, p);
+            if (g === null) { dramaFrame.current = null; return; }
+            setCondition({ gravity: g });
             dramaFrame.current = p < 1 ? requestAnimationFrame(tick) : null;
           };
           dramaFrame.current = requestAnimationFrame(tick);

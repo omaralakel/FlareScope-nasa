@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ARROW_WIDGET_SELECTOR, STEPS, TEXT_ENTRY_SELECTOR, describeTarget, escapeFocus, keyCommand, nextStep, pickStepInView,
-  presenterReducer, prevStep,
+  presenterReducer, prevStep, dramaGravity, SINGLE_LINE_SELECTOR,
 } from '../../src/presenter/usePresenter';
 
 const key = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean; repeat: boolean }> = {}) => ({
@@ -9,6 +9,7 @@ const key = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; altK
 });
 const body = { kind: 'body' } as const;
 const text = { kind: 'text' } as const;
+const line = { kind: 'line' } as const;
 const widget = { kind: 'widget' } as const;
 const other = { kind: 'other' } as const;
 
@@ -104,6 +105,41 @@ describe('keyCommand', () => {
   it('shift with arrows or Space is left to the browser', () => {
     expect(keyCommand(key(' ', { shiftKey: true }), body)).toBeNull();
     expect(keyCommand(key('ArrowRight', { shiftKey: true }), body)).toBeNull();
+  });
+});
+
+describe('single-line text input (Ask box)', () => {
+  it('lets a clicker advance and go back', () => {
+    expect(keyCommand(key('PageDown'), line)).toEqual({ type: 'next' });
+    expect(keyCommand(key('PageUp'), line)).toEqual({ type: 'prev' });
+  });
+  it('keeps every other key, and Esc still escapes', () => {
+    expect(keyCommand(key('ArrowRight'), line)).toBeNull();
+    expect(keyCommand(key('ArrowLeft'), line)).toBeNull();
+    expect(keyCommand(key('1'), line)).toBeNull();
+    expect(keyCommand(key('p'), line)).toBeNull();
+    expect(keyCommand(key('Escape'), line)).toEqual({ type: 'escape' });
+  });
+  it('a textarea keeps PageUp/PageDown', () => {
+    expect(keyCommand(key('PageDown'), text)).toBeNull();
+    expect(keyCommand(key('PageUp'), text)).toBeNull();
+    expect(keyCommand(key('ArrowRight'), text)).toBeNull();
+  });
+  it('describeTarget: single-line inputs are line, other text entry stays text', () => {
+    const doc = { body: fakeEl(), documentElement: fakeEl() };
+    expect(describeTarget(fakeEl([TEXT_ENTRY_SELECTOR, SINGLE_LINE_SELECTOR]), doc)).toEqual(line);
+    expect(describeTarget(fakeEl([TEXT_ENTRY_SELECTOR]), doc)).toEqual(text);
+  });
+});
+
+describe('dramaGravity', () => {
+  it('ramps to Moon gravity on the Moon', () => {
+    expect(dramaGravity('moon', 0)).toBe(0);
+    expect(dramaGravity('moon', 1)).toBe(0.166);
+  });
+  it('stops (null) once the habitat is not the Moon', () => {
+    expect(dramaGravity('mars', 0.5)).toBeNull();
+    expect(dramaGravity('iss', 1)).toBeNull();
   });
 });
 

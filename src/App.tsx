@@ -12,6 +12,7 @@ import { EarthSection } from './components/EarthSection/EarthSection'
 import { Compare } from './components/DnaCard/Compare'
 import { GravityBridge } from './components/GravityBridge/GravityBridge'
 import { AskPanel } from './components/Ask/AskPanel'
+import { fmtG, fmtNum } from './lib/format'
 import { HABITATS } from './model/habitats'
 import { STEPS, STEP_LABELS, stepNumber, usePresenter, type IntroHandle, type StepId } from './presenter/usePresenter'
 import './styles/layout.css'
@@ -25,7 +26,7 @@ function LiveFlame() {
 function HabitatBadge() {
   const { habitat, o2, pressure, gravity } = useStore()
   return (
-    <p className="fs-badge" aria-label={`Current habitat ${HABITATS[habitat].label}: ${o2} percent oxygen, ${pressure} psi, ${gravity} g`}>
+    <p className="fs-badge" aria-label={`Current habitat ${HABITATS[habitat].label}: ${fmtNum(o2)} percent oxygen, ${fmtNum(pressure)} psi, ${fmtG(gravity)} g`}>
       <span className="fs-badge__name">{HABITATS[habitat].label}</span>
       <span className="fs-badge__vals" aria-hidden="true">
         <span>{+o2.toFixed(1)}<small>% O₂</small></span>
