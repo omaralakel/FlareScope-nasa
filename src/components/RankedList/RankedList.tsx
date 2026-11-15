@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react';
 import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import type { Dataset } from '../../data/schema';
-import { explainRank } from '../../model/explain';
+import insightsJson from '../../data/insights.json';
+import { whyLine, type Insights } from '../../model/insights';
 import { HABITATS } from '../../model/habitats';
 import { DEFAULT_WEIGHTS, normalizeWeights, rankInvestigations, type Weights } from '../../model/rank';
 import { useStore } from '../../state/store';
 import './rankedList.css';
+
+const INSIGHTS = insightsJson as Insights;
 
 type Props = { dataset: Dataset; onSelectInvestigation?: (id: string) => void };
 
@@ -52,7 +55,7 @@ export function RankedList({ dataset, onSelectInvestigation }: Props) {
       <LayoutGroup>
         <ol className="rl__list">
           {rows.map((r, i) => {
-            const why = explainRank(r, h);
+            const why = whyLine(INSIGHTS, r, h);
             const parts = FACTORS.map((f) => ({ ...f, v: w[f.key] * r.factors[f.factor] }));
             const tip = parts.map((p) => `${p.label}: ${(p.v * 100).toFixed(0)}`).join(', ');
             return (

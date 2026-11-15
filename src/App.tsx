@@ -10,6 +10,7 @@ import { StoryIntro } from './components/StoryIntro/StoryIntro'
 import { EarthSection } from './components/EarthSection/EarthSection'
 import { Compare } from './components/DnaCard/Compare'
 import { GravityBridge } from './components/GravityBridge/GravityBridge'
+import { AskPanel } from './components/Ask/AskPanel'
 
 // Temporary wiring; Task 13 replaces this with the presenter layout.
 const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -52,10 +53,14 @@ function Page() {
       <div id="gravity">
         <GravityBridge dataset={dataset} onSelectInvestigation={openInvestigation} />
       </div>
-      <EarthSection onSelectInvestigation={openInvestigation} />
       <div id="compare">
         <Compare />
       </div>
+      {/* Temporary mount after Compare; Task 13 sets the final layout. */}
+      <div id="ask">
+        <AskPanel onSelectInvestigation={openInvestigation} />
+      </div>
+      <EarthSection onSelectInvestigation={openInvestigation} />
     </>
   )
 }

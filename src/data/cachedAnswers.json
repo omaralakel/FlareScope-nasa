@@ -1,0 +1,69 @@
+[
+  {
+    "question": "What does the data say about 30% oxygen?",
+    "keywords": ["30", "oxygen", "o2", "enriched", "percent"],
+    "answer": "30% O2 at 10.2 psi is the planned Moon base and pressurized rover atmosphere. ACME BRE tested crew atmospheres up to 34% O2 and found flames kept burning with no airflow mainly in the higher-oxygen atmospheres, while at 21% O2 they put themselves out quickly. ACME s-Flame ran tests at roughly 21% and 30% O2. FLEX (12 to 34% O2), FLEX-2 (10 to 40%), CFI-G (about 18 to 40%) and Flame Design (about 20 to 40%) also span 30%. Only 8 test points sit near 30% O2 and 10.2 psi, all from FLEX.",
+    "citations": [
+      { "investigationId": "acme-bre", "source": "PSI-20 record: researchImpacts; https://psi.nasa.gov/physci/repo/data/investigations/PSI-20" },
+      { "investigationId": "acme-s-flame", "source": "PSI-23 Experimental table PSI-23_Experimental table_ACME s-Flame.csv, rows 1-18" },
+      { "investigationId": "flex", "source": "Derived from 274 ambient-O2 test rows in PSI-69 Experimental table PSI-69_Experimental table_FLEX.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" },
+      { "investigationId": "flex-2", "source": "PSI-68 record: approach (O2 0.1 to 0.4 mole fraction); https://psi.nasa.gov/physci/repo/data/investigations/PSI-68" },
+      { "investigationId": "acme-cfi-g", "source": "Derived from 179 ambient-O2 test rows in PSI-159 Experimental table PSI-159_Experimental table_CFI-G_Normal Flames.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-159" },
+      { "investigationId": "acme-flame-design", "source": "Derived from 207 ambient-O2 test rows in PSI-10 Experimental table PSI-10_Experimental table_Flame Design_Normal Flame.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-10" }
+    ]
+  },
+  {
+    "question": "Which experiments tested fire suppression?",
+    "keywords": ["suppression", "suppress", "extinguish", "extinguishing", "put", "out", "nitrogen", "co2"],
+    "answer": "Five investigations cover suppression. BASS tested nitrogen, an inert gas like the ISS extinguishing agent, and found a local suppressant jet pulled in air and kept the flame going. BASS-II lowered oxygen with nitrogen and slowed the airflow until solid fuels went out. FLEX measured how CO2, helium and SF6 work on burning droplets and found the flammability limit is lower in reduced gravity, so Earth suppressant standards give less margin in space. CLD Flame studied what makes weak gas flames go out. ACME BRE saw flames at 21% O2 put themselves out quickly without airflow.",
+    "citations": [
+      { "investigationId": "bass", "source": "NASA ISS Program Science Office, \"A Researcher's Guide to: Combustion Science\" (NP-2015-10-034-JSC), p. 31" },
+      { "investigationId": "bass-ii", "source": "PSI-25 record: objective; approach; https://psi.nasa.gov/physci/repo/data/investigations/PSI-25" },
+      { "investigationId": "flex", "source": "PSI-69 record: objective; https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" },
+      { "investigationId": "acme-cld", "source": "PSI-21 record: researchImpacts; https://psi.nasa.gov/physci/repo/data/investigations/PSI-21" },
+      { "investigationId": "acme-bre", "source": "PSI-20 record: researchImpacts; https://psi.nasa.gov/physci/repo/data/investigations/PSI-20" }
+    ]
+  },
+  {
+    "question": "How many tests are near Moon base conditions?",
+    "keywords": ["how", "many", "tests", "near", "moon", "base", "lunar", "conditions", "count"],
+    "answer": "8 test points sit near the Moon base atmosphere of 30% O2 at 10.2 psi, counting tests within 3 points of O2 and 1.5 psi. All 8 are FLEX droplet tests. The pressurized rover uses the same atmosphere, so it has the same 8. For comparison, 223 tests sit near ISS cabin air (21% O2 at 14.7 psi), from FLEX, CFI, CFI-G and Flame Design. All of these ran in microgravity on the ISS, not in lunar gravity.",
+    "citations": [
+      { "investigationId": "flex", "source": "Derived from 273 ambient-O2 test rows in PSI-69 Experimental table PSI-69_Experimental table_FLEX.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" },
+      { "investigationId": "cfi", "source": "Derived from 87 ambient-O2 test rows in PSI-39 Experimental table PSI-39_Experimental table_CFI.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-39" },
+      { "investigationId": "acme-cfi-g", "source": "Derived from 179 ambient-O2 test rows in PSI-159 Experimental table PSI-159_Experimental table_CFI-G_Normal Flames.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-159" },
+      { "investigationId": "acme-flame-design", "source": "Derived from 187 ambient-O2 test rows in PSI-10 Experimental table PSI-10_Experimental table_Flame Design_Normal Flame.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-10" }
+    ]
+  },
+  {
+    "question": "Do materials that don't burn in orbit burn on the Moon?",
+    "keywords": ["materials", "burn", "orbit", "moon", "gravity", "lunar", "microgravity", "silicone"],
+    "answer": "The PSI data cannot say directly: no test ran in lunar gravity. What it does show is that gravity changes the answer both ways. In Saffire-II, the four silicone samples showed about zero burn length in microgravity, yet some silicone samples burned completely in 1 g. BASS points the other way: some materials burn at lower oxygen in microgravity than on Earth, so the 1 g screening test is not conservative. The Moon sits between 0 g and 1 g, where the dataset has no measurements.",
+    "citations": [
+      { "investigationId": "saffire-ii", "source": "PSI-99 Experimental table PSI-99_Experimental table_SAFFIRE-2.csv, rows 1-4" },
+      { "investigationId": "bass", "source": "NASA ISS Program Science Office, \"A Researcher's Guide to: Combustion Science\" (NP-2015-10-034-JSC), p. 31" }
+    ]
+  },
+  {
+    "question": "Which investigations matter most for a pressurized rover?",
+    "keywords": ["investigations", "matter", "most", "pressurized", "rover", "important", "relevant"],
+    "answer": "The rover shares the Moon base atmosphere: 30% O2 at 10.2 psi in lunar gravity. ACME BRE ranks first because it tested exploration atmospheres, including 8.2 psi with 34% O2, and found flames survive without airflow at higher oxygen. FLEX and FLEX-2 come next: their oxygen and pressure ranges cover the rover's, and FLEX found flames survive at lower oxygen in space. BASS-II and Saffire-II matter for cabin materials: they burned real solids such as PMMA, Nomex and fabric, though only near 21% O2 or below.",
+    "citations": [
+      { "investigationId": "acme-bre", "source": "PSI-20 record: objective; https://psi.nasa.gov/physci/repo/data/investigations/PSI-20" },
+      { "investigationId": "flex", "source": "NASA ISS Program Science Office, \"A Researcher's Guide to: Combustion Science\" (NP-2015-10-034-JSC), p. 12" },
+      { "investigationId": "flex-2", "source": "PSI-68 record: approach (0.5 to 3.0 atm, converted at 14.696 psi/atm); https://psi.nasa.gov/physci/repo/data/investigations/PSI-68" },
+      { "investigationId": "bass-ii", "source": "Derived from 129 ambient-O2 test rows in PSI-25 Experimental table PSI-25_Experimental table_BASS-II.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-25" },
+      { "investigationId": "saffire-ii", "source": "Derived from 10 ambient-O2 test rows in PSI-99 Experimental table PSI-99_Experimental table_SAFFIRE-2.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-99" }
+    ]
+  },
+  {
+    "question": "Can I see a flammability limit for the Moon base?",
+    "keywords": ["flammability", "limit", "boundary", "moon", "base", "threshold", "line"],
+    "answer": "No. The data does not support one flammability limit for 30% O2 at 10.2 psi, so the app does not draw one. Of 101 usable burn or no-burn tests, 57 burned and 44 did not ignite, and they come from only two investigations, CFI-G and FLEX. Whether a flame lit depended on fuel, flow and geometry, not just oxygen and pressure. Some limits were published for specific cases, such as BASS-II's boundary for PMMA rods, but none is a Moon base limit.",
+    "citations": [
+      { "investigationId": "acme-cfi-g", "source": "Derived from 179 ambient-O2 test rows in PSI-159 Experimental table PSI-159_Experimental table_CFI-G_Normal Flames.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-159" },
+      { "investigationId": "flex", "source": "Derived from 274 ambient-O2 test rows in PSI-69 Experimental table PSI-69_Experimental table_FLEX.csv; https://psi.nasa.gov/physci/repo/data/investigations/PSI-69" },
+      { "investigationId": "bass-ii", "source": "PSI-25 record: publications, \"Microgravity flammability boundary for PMMA rods in axial stagnation flow: Experimental results and energy balance analyses\"; https://psi.nasa.gov/physci/repo/data/investigations/PSI-25" }
+    ]
+  }
+]
