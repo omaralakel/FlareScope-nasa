@@ -9,7 +9,11 @@
 //  - at low O2 (roughly below 15-17%) the flame weakens and flickers toward going out.
 //
 // All inputs are eased on the CPU, so the shader is a pure function of its uniforms.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
+#else
+precision mediump float;
+#endif
 
 uniform vec2  u_resolution; // drawing buffer size in device pixels
 uniform float u_dpr;        // device pixel ratio used for the buffer
@@ -125,7 +129,8 @@ void main() {
   a += (n2 - 0.5) * turbAmp * 0.5;
   // whole-plume sway, strongest at the tip (buoyant only)
   float sway = vnoise(vec2(u_phase * 0.8, 9.0)) - 0.5;
-  b += sway * 0.55 * gs * pow(clamp(a / E, 0.0, 1.0), 2.0);
+  float tipW = clamp(a / E, 0.0, 1.0);
+  b += sway * 0.55 * gs * tipW * tipW;
 
   // ---------------------------------------------------------- teardrop shape
   float ay = a / (a > 0.0 ? E : 1.0 + 0.2 * (E - 1.0));
@@ -136,7 +141,8 @@ void main() {
   float soft = 0.16 + 0.22 * lowP + 0.10 * (1.0 - gs);
   float body = 1.0 - smoothstep(1.0 - soft, 1.0 + 0.5 * soft, d);
   float shellW = 0.09 + 0.07 * lowP + 0.05 * (1.0 - gs);
-  float shell = exp(-pow((d - 0.93) / shellW, 2.0));
+  float sh = (d - 0.93) / shellW; // can be negative: square it, never pow()
+  float shell = exp(-sh * sh);
 
   // ---------------------------------------------------------- blue reaction zone
   float baseMask = 1.0 - smoothstep(-0.2, 0.6, ay);
@@ -150,7 +156,7 @@ void main() {
   float sootZone = mix(1.0, smoothstep(-0.55, 0.25, ay), clamp(gs + 2.0 * fn, 0.0, 1.0));
   float darkZone = smoothstep(0.15, 0.6, length(p - W) / R);
   float wisps = mix(1.0, 0.65 + 0.7 * fbm(vec2(b * 2.2, a * 1.4 - u_phase * 3.0) + 11.0), gs);
-  float sootD = pow(body, 1.4) * sootZone * darkZone * wisps;
+  float sootD = pow(max(body, 0.0), 1.4) * sootZone * darkZone * wisps;
   float t = sootD * (0.50 + 0.60 * heat) * (1.0 - 0.35 * smoothstep(0.2, 1.0, ay));
 
   // ---------------------------------------------------------- emission
@@ -168,7 +174,7 @@ void main() {
   float major = max(gridLine(px.x, 140.0), gridLine(px.y, 140.0));
   vec3 bg = vec3(0.027, 0.043, 0.078); // --bg
   bg += vec3(0.30, 0.45, 0.75) * (0.022 * minor + 0.045 * major);
-  float vig = smoothstep(1.05, 0.25, length(p * vec2(0.85, 1.1)));
+  float vig = 1.0 - smoothstep(0.25, 1.05, length(p * vec2(0.85, 1.1)));
   bg *= mix(0.45, 1.0, vig);
   bg += glowCol * 0.05 * exp(-length(p - C) * 2.5) * I; // flame lights the backdrop
 

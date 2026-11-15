@@ -77,7 +77,7 @@ export function FlameControls() {
                 onClick={() => setCondition({ gravity: p.value })}
               >
                 <span>{p.label}</span>
-                <span className="fc-preset__val">{p.value} g</span>
+                <span className="fc-preset__val">{p.value}</span>
               </button>
             );
           })}
