@@ -1,0 +1,128 @@
+.si {
+  --ember: var(--flame-orange);
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 20px;
+  padding: 28px clamp(16px, 5vw, 72px) 24px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.si-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.si-kicker {
+  margin: 0; font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+}
+.si-skip, .si-tick button, .si-cta {
+  font-family: var(--font-sans); color: var(--text); cursor: pointer;
+}
+.si-skip {
+  background: transparent; border: 1px solid var(--border-strong); border-radius: 6px;
+  padding: 6px 12px; font-size: 14px;
+}
+.si-skip:hover { background: var(--surface); }
+.si button:focus-visible, .si a:focus-visible { outline: 2px solid var(--accent-neutral); outline-offset: 3px; }
+
+/* Timeline */
+.si-timeline {
+  list-style: none; margin: 0; padding: 0; position: relative;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+}
+.si-timeline::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 7px; height: 1px; background: var(--border-strong);
+}
+.si-tick button {
+  position: relative; display: grid; gap: 4px; justify-items: start; text-align: left;
+  width: 100%; padding: 0 8px 0 0; background: none; border: 0;
+}
+.si-tick__dot {
+  width: 15px; height: 15px; border-radius: 50%; background: var(--bg);
+  border: 1px solid var(--border-strong); transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
+}
+.si-tick--past .si-tick__dot { background: var(--border-strong); }
+.si-tick--on .si-tick__dot {
+  background: var(--ember); border-color: var(--ember);
+  box-shadow: 0 0 0 4px rgba(255, 122, 26, 0.16), 0 0 18px rgba(255, 122, 26, 0.45);
+}
+.si-tick__year { font-family: var(--font-mono); font-size: 14px; color: var(--muted); margin-top: 6px; }
+.si-tick__name { font-size: 14px; color: var(--muted); }
+.si-tick--on .si-tick__year, .si-tick--on .si-tick__name { color: var(--text); }
+
+/* Stage */
+.si-stage { display: grid; align-items: center; cursor: pointer; min-height: 0; }
+.si-frame { max-width: 1040px; width: 100%; margin: 0 auto; }
+
+.si-incident { display: grid; justify-items: start; }
+.si-incident__year {
+  margin: 0; font-family: var(--font-mono); font-size: clamp(18px, 2vw, 24px);
+  letter-spacing: 0.08em; color: var(--muted);
+}
+.si-incident__title {
+  margin: 4px 0 0; font-size: clamp(44px, 7vw, 88px); line-height: 1; font-weight: 600; letter-spacing: -0.02em;
+}
+.si-incident__mode {
+  margin: 14px 0 0; padding-left: 12px; border-left: 2px solid var(--ember);
+  font-family: var(--font-mono); font-size: 15px; color: var(--text);
+}
+.si-incident__summary {
+  margin: 20px 0 0; max-width: 46ch; font-size: clamp(18px, 1.8vw, 24px); line-height: 1.45; color: var(--text);
+}
+.si-quote { margin: 18px 0 0; max-width: 46ch; }
+.si-quote p { margin: 0; font-size: clamp(18px, 1.8vw, 24px); line-height: 1.4; font-style: italic; color: var(--text); }
+.si-quote cite { display: block; margin-top: 6px; font-style: normal; font-size: 14px; color: var(--muted); }
+.si-source { margin-top: 14px; font-size: 14px; color: var(--accent-neutral); text-underline-offset: 3px; }
+
+/* Connector to the investigations */
+.si-links { display: grid; justify-items: center; width: 100%; margin-top: 18px; }
+.si-links__stem {
+  display: block; width: 1px; height: 32px; background: var(--border-strong); transform-origin: top;
+}
+.si-links__rail {
+  display: block; height: 1px; max-width: 100%; background: var(--border-strong); transform-origin: center;
+}
+.si-links__label {
+  margin: 12px 0 8px; font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted);
+}
+.si-chips {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+}
+.si-chip {
+  font-family: var(--font-mono); font-size: 14px; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--accent-neutral); color: var(--text); background: var(--surface);
+}
+.si-scope { margin: 10px 0 0; font-size: 14px; color: var(--muted); text-align: center; }
+
+/* Closing */
+.si-closing { display: grid; justify-items: start; gap: 18px; }
+.si-closing__line {
+  margin: 0; font-size: clamp(40px, 6.4vw, 84px); line-height: 1.05; font-weight: 600; letter-spacing: -0.02em;
+}
+.si-closing__line span { display: block; color: var(--muted); }
+.si-closing__sub { margin: 0; max-width: 52ch; font-size: clamp(17px, 1.6vw, 21px); line-height: 1.5; color: var(--text); }
+.si-cta {
+  margin-top: 6px; padding: 14px 26px; font-size: 18px; font-weight: 600;
+  background: var(--text); color: var(--bg); border: 0; border-radius: 8px;
+}
+.si-cta:hover { background: var(--accent-neutral); }
+
+.si-hint { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+
+/* Reduced motion: everything at once, as a readable list. */
+.si--static { min-height: 0; grid-template-rows: none; gap: 28px; }
+.si-static-list { display: grid; gap: 40px; }
+.si--static .si-incident__title { font-size: clamp(32px, 4vw, 48px); }
+.si--static .si-links { justify-items: start; }
+.si--static .si-links__stem, .si--static .si-links__rail { display: none; }
+.si--static .si-chips { justify-content: flex-start; }
+.si--static .si-scope { text-align: left; }
+
+@media (max-width: 640px) {
+  .si-tick__name { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .si-tick__dot { transition: none; }
+}
