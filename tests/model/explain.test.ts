@@ -35,3 +35,10 @@ describe('explainRank', () => {
     expect(explainRank(row({}), HABITATS.moon)).toMatch(/^No oxygen range reported/);
   });
 });
+
+describe('explainRank pressure', () => {
+  it('mentions tested pressure when reported', () => {
+    const r = row({ o2Percent: o2(21, 40), pressurePsi: { value: { min: 10, max: 14.7 }, source: 's', confidence: 'stated' } });
+    expect(explainRank(r, HABITATS.moon)).toContain('tested 10–14.7 psi');
+  });
+});

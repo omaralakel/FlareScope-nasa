@@ -24,6 +24,8 @@ export function explainRank(r: RankedRow, h: Habitat): string {
     parts.push(`${tested}, ${pts} the ${h.label}'s ${target}%`);
   }
 
+  const psi = inv.pressurePsi.value;
+  if (psi) parts.push(`tested ${num(psi.min)}\u2013${num(psi.max)} psi`);
   if (inv.pillars.length > 0) parts.push(`covers ${inv.pillars.join(', ')}`);
   parts.push(`${inv.fuelPhase} fuel`);
   return parts.join('; ') + '.';

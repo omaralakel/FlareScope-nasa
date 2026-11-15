@@ -62,22 +62,13 @@ export function RankedList({ dataset, onSelectInvestigation }: Props) {
                 transition={{ type: 'spring', stiffness: 420, damping: 38 }}
                 className="rl-row"
               >
-                <div
-                  className="rl-row__main"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onSelectInvestigation?.(r.inv.id)}
-                  onKeyDown={(e) => {
-                    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                      e.preventDefault();
-                      onSelectInvestigation?.(r.inv.id);
-                    }
-                  }}
-                >
+                <div className="rl-row__main">
                   <span className="rl-row__rank">{i + 1}</span>
                   <div className="rl-row__body">
                     <div className="rl-row__head">
-                      <span className="rl-row__name">{r.inv.name}</span>
+                      <button type="button" className="rl-row__name" onClick={() => onSelectInvestigation?.(r.inv.id)}>
+                        {r.inv.name}
+                      </button>
                       <span className="rl-chip">{r.inv.fuelPhase}</span>
                       {r.inv.pillars.length > 0 && (
                         <span className="rl-tags">
@@ -96,7 +87,6 @@ export function RankedList({ dataset, onSelectInvestigation }: Props) {
                   {r.inv.psiUrl && (
                     <a
                       className="rl-row__link" href={r.inv.psiUrl} target="_blank" rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       PSI page<span className="sr-only"> (opens in new tab)</span> ↗
                     </a>
