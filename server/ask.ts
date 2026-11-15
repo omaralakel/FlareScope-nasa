@@ -1,4 +1,5 @@
 /**
+ * Source of the /api/ask function; bundled to api/ask.js by npm run build:api.
  * POST /api/ask  body { question }  ->  { answer, citations: { investigationId, source }[] }
  *
  * Vercel Node.js function using the Web-standard signature: a named `POST(request: Request)`

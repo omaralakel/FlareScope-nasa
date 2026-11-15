@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAskHandler, MODEL, SERVER_TIMEOUT_MS } from '../../api/ask';
+import { createAskHandler, MODEL, SERVER_TIMEOUT_MS } from '../../server/ask';
 import { ASK_TIMEOUT_MS } from '../../src/components/Ask/askClient';
 
 const post = (body: unknown, method = 'POST') =>

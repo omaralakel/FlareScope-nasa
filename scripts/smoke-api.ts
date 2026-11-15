@@ -1,12 +1,12 @@
 /**
- * Local smoke test of the /api/ask handler logic. No network, no real API call:
+ * Local smoke test of the /api/ask built handler (api/ask.js, exactly what Vercel deploys). No network, no real API call:
  * it runs with ANTHROPIC_API_KEY unset and only checks the error paths.
  * Run: npm run smoke:api
  */
 import assert from 'node:assert/strict';
 
 delete process.env.ANTHROPIC_API_KEY;
-const { POST } = await import('../api/ask.ts');
+const { POST } = await import('../api/ask.js');
 
 const call = (init: RequestInit) => POST(new Request('http://localhost/api/ask', init));
 const post = (body: unknown) =>

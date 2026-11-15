@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGroundingContext, buildSystemPrompt } from '../../api/prompt';
+import { buildGroundingContext, buildSystemPrompt } from '../../server/prompt';
 import { dataset } from '../../src/data/dataset';
 
 describe('buildSystemPrompt', () => {

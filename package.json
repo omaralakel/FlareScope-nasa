@@ -12,10 +12,13 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "build:api": "node scripts/build-api.mjs",
     "smoke:api": "tsx scripts/smoke-api.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
     "d3": "^7.9.2",
     "motion": "^14.14.0",
     "react": "^19.3.1",
@@ -28,6 +31,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "esbuild": "^0.28.2",
     "oxlint": "^1.90.0",
     "tsx": "^4.23.15",
     "typescript": "~7.0.2",
