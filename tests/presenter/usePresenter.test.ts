@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { STEPS, keyCommand, nextStep, pickStepInView, presenterReducer, prevStep } from '../../src/presenter/usePresenter';
+import {
+  ARROW_WIDGET_SELECTOR, STEPS, TEXT_ENTRY_SELECTOR, describeTarget, escapeFocus, keyCommand, nextStep, pickStepInView,
+  presenterReducer, prevStep,
+} from '../../src/presenter/usePresenter';
 
-const key = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean }> = {}) => ({
-  key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...mods,
+const key = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean; repeat: boolean }> = {}) => ({
+  key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, repeat: false, ...mods,
 });
-const body = { interactive: false, isBody: true };
+const body = { kind: 'body' } as const;
+const text = { kind: 'text' } as const;
+const widget = { kind: 'widget' } as const;
+const other = { kind: 'other' } as const;
 
 describe('presenter steps', () => {
   it('has the nine scripted steps in order', () => {
@@ -41,7 +47,7 @@ describe('presenter steps', () => {
 });
 
 describe('keyCommand', () => {
-  it('maps navigation keys', () => {
+  it('maps navigation keys on the page body', () => {
     expect(keyCommand(key('ArrowRight'), body)).toEqual({ type: 'next' });
     expect(keyCommand(key('PageDown'), body)).toEqual({ type: 'next' });
     expect(keyCommand(key(' '), body)).toEqual({ type: 'next' });
@@ -52,13 +58,11 @@ describe('keyCommand', () => {
     expect(keyCommand(key('9'), body)).toEqual({ type: 'goto', step: 8 });
     expect(keyCommand(key('p'), body)).toEqual({ type: 'toggleIndicator' });
     expect(keyCommand(key('P', { shiftKey: true }), body)).toEqual({ type: 'toggleIndicator' });
-    expect(keyCommand(key('Escape'), body)).toEqual({ type: 'hideIndicator' });
+    expect(keyCommand(key('Escape'), body)).toEqual({ type: 'escape' });
   });
 
   it('ignores unhandled keys and 0', () => {
-    expect(keyCommand(key('0'), body)).toBeNull();
-    expect(keyCommand(key('a'), body)).toBeNull();
-    expect(keyCommand(key('ArrowDown'), body)).toBeNull();
+    for (const k of ['0', 'a', 'ArrowDown', 'End']) expect(keyCommand(key(k), body)).toBeNull();
   });
 
   it('ignores keys with ctrl, meta or alt held', () => {
@@ -66,24 +70,91 @@ describe('keyCommand', () => {
     expect(keyCommand(key('ArrowLeft', { metaKey: true }), body)).toBeNull();
     expect(keyCommand(key('1', { altKey: true }), body)).toBeNull();
     expect(keyCommand(key('p', { metaKey: true }), body)).toBeNull();
+    expect(keyCommand(key('Escape', { ctrlKey: true }), body)).toBeNull();
   });
 
-  it('never hijacks keys from interactive targets', () => {
-    const field = { interactive: true, isBody: false };
-    for (const k of ['ArrowRight', 'ArrowLeft', ' ', '3', 'p', 'Home', 'PageDown', 'Escape']) {
-      expect(keyCommand(key(k), field)).toBeNull();
+  it('ignores auto-repeat for navigation keys', () => {
+    for (const k of ['ArrowRight', 'ArrowLeft', 'PageDown', 'PageUp', ' ', 'Home', '4', 'p']) {
+      expect(keyCommand(key(k, { repeat: true }), body)).toBeNull();
     }
   });
 
-  it('Space only acts on the page body, not on a focused button or link', () => {
-    const button = { interactive: false, isBody: false };
-    expect(keyCommand(key(' '), button)).toBeNull();
-    expect(keyCommand(key('ArrowRight'), button)).toEqual({ type: 'next' });
+  it('text-entry targets block every key except Esc', () => {
+    for (const k of ['ArrowRight', 'ArrowLeft', ' ', '3', 'p', 'Home', 'PageDown', 'PageUp']) {
+      expect(keyCommand(key(k), text)).toBeNull();
+    }
+    expect(keyCommand(key('Escape'), text)).toEqual({ type: 'escape' });
+  });
+
+  it('arrow-owning widgets keep ←/→/Home/End/Space but pass the rest to the presenter', () => {
+    for (const k of ['ArrowRight', 'ArrowLeft', 'Home', 'End', ' ']) expect(keyCommand(key(k), widget)).toBeNull();
+    expect(keyCommand(key('PageDown'), widget)).toEqual({ type: 'next' });
+    expect(keyCommand(key('PageUp'), widget)).toEqual({ type: 'prev' });
+    expect(keyCommand(key('5'), widget)).toEqual({ type: 'goto', step: 4 });
+    expect(keyCommand(key('p'), widget)).toEqual({ type: 'toggleIndicator' });
+    expect(keyCommand(key('Escape'), widget)).toEqual({ type: 'escape' });
+  });
+
+  it('on a focused button or link, arrows navigate but Space is left to the browser', () => {
+    expect(keyCommand(key(' '), other)).toBeNull();
+    expect(keyCommand(key('ArrowRight'), other)).toEqual({ type: 'next' });
+    expect(keyCommand(key('Home'), other)).toEqual({ type: 'goto', step: 0 });
   });
 
   it('shift with arrows or Space is left to the browser', () => {
     expect(keyCommand(key(' ', { shiftKey: true }), body)).toBeNull();
     expect(keyCommand(key('ArrowRight', { shiftKey: true }), body)).toBeNull();
+  });
+});
+
+/** Minimal stand-in for a DOM element: matches the given selectors (and closest() climbs to itself). */
+function fakeEl(matching: string[] = []) {
+  const el = { closest: (sel: string) => (matching.includes(sel) ? el : null) };
+  return el;
+}
+
+describe('describeTarget', () => {
+  const doc = { body: fakeEl(), documentElement: fakeEl() };
+  it('treats the body, the document and non-elements as the page body', () => {
+    expect(describeTarget(doc.body, doc)).toEqual(body);
+    expect(describeTarget(doc.documentElement, doc)).toEqual(body);
+    expect(describeTarget(null, doc)).toEqual(body);
+  });
+  it('classifies text entry, arrow widgets and everything else', () => {
+    expect(describeTarget(fakeEl([TEXT_ENTRY_SELECTOR]), doc)).toEqual(text);
+    expect(describeTarget(fakeEl([ARROW_WIDGET_SELECTOR]), doc)).toEqual(widget);
+    expect(describeTarget(fakeEl(), doc)).toEqual(other);
+  });
+  it('text entry wins over an enclosing arrow widget', () => {
+    expect(describeTarget(fakeEl([TEXT_ENTRY_SELECTOR, ARROW_WIDGET_SELECTOR]), doc)).toEqual(text);
+  });
+  it('selectors: range sliders are arrow widgets, not text; only <summary> (not all of <details>) counts', () => {
+    expect(TEXT_ENTRY_SELECTOR).toContain('input:not([type="range"])');
+    for (const s of ['[role="radiogroup"]', '[role="application"]', 'input[type="range"]', 'summary']) {
+      expect(ARROW_WIDGET_SELECTOR).toContain(s);
+    }
+    expect(ARROW_WIDGET_SELECTOR).not.toMatch(/details/);
+    expect(TEXT_ENTRY_SELECTOR).not.toMatch(/details/);
+  });
+});
+
+describe('escapeFocus', () => {
+  const mk = () => {
+    const body = { blur: () => { throw new Error('never blur body'); } };
+    return { body, documentElement: {}, activeElement: body as { blur(): void } | null };
+  };
+  it('blurs any focused element that is not the body', () => {
+    const doc = mk();
+    let blurred = false;
+    doc.activeElement = { blur: () => { blurred = true; } };
+    expect(escapeFocus(doc)).toBe(true);
+    expect(blurred).toBe(true);
+  });
+  it('does nothing when the body has focus or nothing does', () => {
+    const doc = mk();
+    expect(escapeFocus(doc)).toBe(false);
+    doc.activeElement = null;
+    expect(escapeFocus(doc)).toBe(false);
   });
 });
 

@@ -42,14 +42,25 @@ export function presenterReducer(current: number, action: PresenterAction, total
   }
 }
 
-export type KeyCommand = PresenterAction | { type: 'toggleIndicator' } | { type: 'hideIndicator' };
-type KeyLike = { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean };
-export type TargetInfo = { interactive: boolean; isBody: boolean };
+export type KeyCommand = PresenterAction | { type: 'toggleIndicator' } | { type: 'escape' };
+type KeyLike = { key: string; ctrlKey: boolean; metaKey: boolean; altKey: boolean; shiftKey: boolean; repeat?: boolean };
+/**
+ * body: the page itself. text: a text-entry field (owns every key but Esc).
+ * widget: owns ←/→/Home/End/Space only (radio group, map, slider, summary). other: buttons, links, etc.
+ */
+export type TargetInfo = { kind: 'body' | 'text' | 'widget' | 'other' };
+
+/** Keys an arrow-owning widget keeps for itself. */
+const WIDGET_KEYS = new Set(['ArrowLeft', 'ArrowRight', 'Home', 'End', ' ']);
 
 /** Maps a key press to a presenter command, or null when the presenter must leave it alone. */
 export function keyCommand(e: KeyLike, target: TargetInfo): KeyCommand | null {
-  if (e.ctrlKey || e.metaKey || e.altKey || target.interactive) return null;
+  if (e.ctrlKey || e.metaKey || e.altKey) return null;
   const k = e.key;
+  // Esc always comes to the presenter: it leaves whatever has focus.
+  if (k === 'Escape') return { type: 'escape' };
+  if (target.kind === 'text' || e.repeat) return null;
+  if (target.kind === 'widget' && WIDGET_KEYS.has(k)) return null;
   if (k === 'p' || k === 'P') return { type: 'toggleIndicator' };
   if (e.shiftKey) return null;
   switch (k) {
@@ -57,26 +68,41 @@ export function keyCommand(e: KeyLike, target: TargetInfo): KeyCommand | null {
     case 'PageDown':
       return { type: 'next' };
     case ' ':
-      return target.isBody ? { type: 'next' } : null;
+      return target.kind === 'body' ? { type: 'next' } : null;
     case 'ArrowLeft':
     case 'PageUp':
       return { type: 'prev' };
     case 'Home':
       return { type: 'goto', step: 0 };
-    case 'Escape':
-      return { type: 'hideIndicator' };
   }
   if (/^[1-9]$/.test(k) && Number(k) <= STEPS.length) return { type: 'goto', step: Number(k) - 1 };
   return null;
 }
 
-const INTERACTIVE =
-  'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="application"], [role="radiogroup"], summary, details';
+export const TEXT_ENTRY_SELECTOR =
+  'input:not([type="range"]), textarea, select, [contenteditable]:not([contenteditable="false"])';
+/** Only the <summary> of a <details> owns keys, never the details body. */
+export const ARROW_WIDGET_SELECTOR = '[role="radiogroup"], [role="application"], input[type="range"], summary';
 
-export function describeTarget(t: EventTarget | null): TargetInfo {
-  if (!(t instanceof Element)) return { interactive: false, isBody: true };
-  const isBody = t === document.body || t === document.documentElement;
-  return { interactive: !isBody && t.closest(INTERACTIVE) !== null, isBody };
+type ElLike = { closest(selector: string): unknown };
+type DocLike = { body: unknown; documentElement: unknown };
+
+export function describeTarget(t: unknown, doc: DocLike = document): TargetInfo {
+  if (!t || typeof (t as ElLike).closest !== 'function' || t === doc.body || t === doc.documentElement) {
+    return { kind: 'body' };
+  }
+  const el = t as ElLike;
+  if (el.closest(TEXT_ENTRY_SELECTOR)) return { kind: 'text' };
+  if (el.closest(ARROW_WIDGET_SELECTOR)) return { kind: 'widget' };
+  return { kind: 'other' };
+}
+
+/** Esc: drop focus from whatever element holds it, so ←/→ drive the demo again. */
+export function escapeFocus(doc: DocLike & { activeElement: unknown }): boolean {
+  const a = doc.activeElement as { blur?: unknown } | null;
+  if (!a || a === doc.body || a === doc.documentElement || typeof a.blur !== 'function') return false;
+  (a as { blur(): void }).blur();
+  return true;
 }
 
 /**
@@ -95,6 +121,8 @@ export function pickStepInView(tops: number[], current: number, line: number, at
 }
 
 export type IntroHandle = { next(): boolean; prev(): boolean };
+
+const MOON_G = 0.166;
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -142,16 +170,23 @@ export function usePresenter({ introRef, onMapReset }: Options) {
   // While a presenter scroll is running, scroll-sync must not report the sections it passes.
   const syncPaused = useRef(false);
   const scrollToken = useRef(0);
-  const dramaTimers = useRef<number[]>([]);
-  const cancelDrama = () => {
-    for (const id of dramaTimers.current) { clearTimeout(id); cancelAnimationFrame(id); }
-    dramaTimers.current = [];
+  // Flame drama: a timeout and an animation frame, tracked separately so clearing one kind
+  // never cancels an unrelated id of the other kind (such as goTo's landing check).
+  const dramaTimeout = useRef<number | null>(null);
+  const dramaFrame = useRef<number | null>(null);
+  /** Stops the gravity ramp; with snap, jumps straight to Moon gravity so no half-ramp value lingers. */
+  const cancelDrama = (snap: boolean) => {
+    const running = dramaTimeout.current !== null || dramaFrame.current !== null;
+    if (dramaTimeout.current !== null) clearTimeout(dramaTimeout.current);
+    if (dramaFrame.current !== null) cancelAnimationFrame(dramaFrame.current);
+    dramaTimeout.current = null;
+    dramaFrame.current = null;
+    if (running && snap) actions.current.store.setCondition({ gravity: MOON_G });
   };
 
   const runSideEffects = useCallback((id: StepId) => {
     const { setHabitat, setCondition, setCompare } = actions.current.store;
     const { onMapReset } = actions.current;
-    cancelDrama();
     switch (id) {
       case 'mission':
         setHabitat('moon');
@@ -161,17 +196,17 @@ export function usePresenter({ introRef, onMapReset }: Options) {
         if (prefersReducedMotion()) break;
         // Drama: start as an orbital sphere, then settle into lunar gravity.
         setCondition({ gravity: 0 });
-        const target = 0.166;
-        dramaTimers.current.push(window.setTimeout(() => {
+        dramaTimeout.current = window.setTimeout(() => {
+          dramaTimeout.current = null;
           const t0 = performance.now();
           const tick = (now: number) => {
             const p = Math.min(1, (now - t0) / 900);
             const eased = 1 - Math.pow(1 - p, 3);
-            setCondition({ gravity: Math.round(target * eased * 1000) / 1000 });
-            if (p < 1) dramaTimers.current.push(requestAnimationFrame(tick));
+            setCondition({ gravity: Math.round(MOON_G * eased * 1000) / 1000 });
+            dramaFrame.current = p < 1 ? requestAnimationFrame(tick) : null;
           };
-          dramaTimers.current.push(requestAnimationFrame(tick));
-        }, 1200));
+          dramaFrame.current = requestAnimationFrame(tick);
+        }, 1200);
         break;
       }
       case 'map':
@@ -187,7 +222,7 @@ export function usePresenter({ introRef, onMapReset }: Options) {
     }
   }, []);
 
-  useEffect(() => () => cancelDrama(), []);
+  useEffect(() => () => cancelDrama(false), []);
 
   /** Presenter navigation: set step, scroll, run side effects. */
   const goTo = useCallback((n: number, sideEffects = true) => {
@@ -195,6 +230,8 @@ export function usePresenter({ introRef, onMapReset }: Options) {
     stepRef.current = i;
     actions.current.store.setStep(i);
     syncPaused.current = true;
+    // Any navigation ends a running gravity ramp at its target before anything else changes.
+    cancelDrama(true);
     scrollToStep(i);
     if (sideEffects) runSideEffects(STEPS[i]);
     // Resume scroll-sync (and focus Ask) once the section has landed; give up after 3 s.
@@ -214,16 +251,15 @@ export function usePresenter({ introRef, onMapReset }: Options) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return;
-      const target = describeTarget(e.target);
-      // Escape hatch: Esc leaves a text field so the arrow keys drive the demo again.
-      if (e.key === 'Escape' && e.target instanceof HTMLElement && e.target.matches('input[type="text"], input:not([type]), textarea')) {
-        e.target.blur();
-        return;
-      }
-      const cmd = keyCommand(e, target);
+      const cmd = keyCommand(e, describeTarget(e.target));
       if (!cmd) return;
       if (cmd.type === 'toggleIndicator') { setIndicator((v) => !v); return; }
-      if (cmd.type === 'hideIndicator') { setIndicator(false); return; }
+      if (cmd.type === 'escape') {
+        // One Esc always restores ←/→: leave the focused widget or field, then hide the indicator.
+        escapeFocus(document);
+        setIndicator(false);
+        return;
+      }
       e.preventDefault();
       const cur = stepRef.current;
       if (STEPS[cur] === 'intro' && cmd.type !== 'goto') {

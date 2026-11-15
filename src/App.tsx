@@ -13,7 +13,7 @@ import { Compare } from './components/DnaCard/Compare'
 import { GravityBridge } from './components/GravityBridge/GravityBridge'
 import { AskPanel } from './components/Ask/AskPanel'
 import { HABITATS } from './model/habitats'
-import { STEPS, STEP_LABELS, scrollToStep, stepNumber, usePresenter, type IntroHandle, type StepId } from './presenter/usePresenter'
+import { STEPS, STEP_LABELS, stepNumber, usePresenter, type IntroHandle, type StepId } from './presenter/usePresenter'
 import './styles/layout.css'
 
 function LiveFlame() {
@@ -69,7 +69,8 @@ function Page() {
   const openInvestigation = (id: string) => {
     // Chosen id goes to slot A; if it was in B, swap so B is never dropped.
     setCompare(id, compare[1] === id ? compare[0] : compare[1])
-    scrollToStep(STEPS.indexOf('compare'))
+    // Same path as the presenter (scroll-sync paused until it lands), without the step's demo pair.
+    goTo(STEPS.indexOf('compare'), false)
   }
 
   return (
